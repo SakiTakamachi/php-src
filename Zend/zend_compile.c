@@ -411,11 +411,11 @@ bool zend_arg_uses_strict_types(void) { /* {{{ */
 	if (!EG(current_execute_data)->prev_execute_data->opline) {
 		return EG(current_execute_data)->prev_execute_data->prev_execute_data && \
 			EG(current_execute_data)->prev_execute_data->prev_execute_data->func && \
-			ZEND_CALL_USES_STRICT_TYPES(EG(current_execute_data)->prev_execute_data->prev_execute_data)
+			ZEND_CALL_USES_STRICT_TYPES(EG(current_execute_data)->prev_execute_data->prev_execute_data);
 	}
 
 	return EG(current_execute_data)->prev_execute_data->func && \
-		ZEND_CALL_USES_STRICT_TYPES(EG(current_execute_data)->prev_execute_data)
+		ZEND_CALL_USES_STRICT_TYPES(EG(current_execute_data)->prev_execute_data);
 }
 /* }}} */
 

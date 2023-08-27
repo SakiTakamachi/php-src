@@ -638,10 +638,7 @@ ZEND_STATIC_ASSERT(ZEND_MM_ALIGNED_SIZE(sizeof(zval)) == sizeof(zval),
 #define EX_USES_STRICT_TYPES() \
 	ZEND_CALL_USES_STRICT_TYPES(execute_data)
 
-#define ZEND_ARG_USES_STRICT_TYPES() \
-	(EG(current_execute_data)->prev_execute_data && \
-	 EG(current_execute_data)->prev_execute_data->func && \
-	 ZEND_CALL_USES_STRICT_TYPES(EG(current_execute_data)->prev_execute_data))
+#define ZEND_ARG_USES_STRICT_TYPES() (zend_arg_uses_strict_types())
 
 #define ZEND_RET_USES_STRICT_TYPES() \
 	ZEND_CALL_USES_STRICT_TYPES(EG(current_execute_data))
@@ -779,6 +776,8 @@ BEGIN_EXTERN_C()
 void init_compiler(void);
 void shutdown_compiler(void);
 void zend_init_compiler_data_structures(void);
+
+bool zend_arg_uses_strict_types(void);
 
 void zend_oparray_context_begin(zend_oparray_context *prev_context);
 void zend_oparray_context_end(zend_oparray_context *prev_context);

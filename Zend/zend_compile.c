@@ -403,6 +403,22 @@ void zend_init_compiler_data_structures(void) /* {{{ */
 }
 /* }}} */
 
+bool zend_arg_uses_strict_types(void) { /* {{{ */
+	if (!EG(current_execute_data)->prev_execute_data) {
+		return false;
+	}
+
+	if (!EG(current_execute_data)->prev_execute_data->opline) {
+		return EG(current_execute_data)->prev_execute_data->prev_execute_data && \
+			EG(current_execute_data)->prev_execute_data->prev_execute_data->func && \
+			ZEND_CALL_USES_STRICT_TYPES(EG(current_execute_data)->prev_execute_data->prev_execute_data)
+	}
+
+	return EG(current_execute_data)->prev_execute_data->func && \
+		ZEND_CALL_USES_STRICT_TYPES(EG(current_execute_data)->prev_execute_data)
+}
+/* }}} */
+
 static void zend_register_seen_symbol(zend_string *name, uint32_t kind) {
 	zval *zv = zend_hash_find(&FC(seen_symbols), name);
 	if (zv) {

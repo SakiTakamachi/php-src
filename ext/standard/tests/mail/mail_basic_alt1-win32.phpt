@@ -48,6 +48,7 @@ $c = curl_init();
 curl_setopt($c, CURLOPT_URL, 'http://localhost:8025/api/v2/search?kind=to\&query='.$to);
 curl_setopt($c, CURLOPT_CUSTOMREQUEST, "GET");
 curl_setopt($c, CURLOPT_HTTPHEADER, ["Content-type: application/json"]);
+curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
 
 $res = curl_exec($c);
 curl_close($c);

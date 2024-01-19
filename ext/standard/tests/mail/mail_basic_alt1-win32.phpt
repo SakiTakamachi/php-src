@@ -52,7 +52,7 @@ curl_setopt($c, CURLOPT_HTTPHEADER, ["Content-type: application/json"]);
 $res = curl_exec($c);
 curl_close($c);
 
-var_export($response);
+var_export($res);
 
 ?>
 --EXPECTF--

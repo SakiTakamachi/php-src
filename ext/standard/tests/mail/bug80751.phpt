@@ -25,7 +25,7 @@ $headers = "From: \"<{$from[0]}>\" <{$from[1]}>\r\n"
     . "Cc: \"Lastname, Firstname\\\\\" <{$cc}>\r\n"
     . "Bcc: \"Firstname \\\"Ni,ck\\\" Lastname\" <{$bcc}>\r\n";
 
-$res = mail($to, $subject, $message, $headers);
+$res = mail($toLine, $subject, $message, $headers);
 
 if ($res !== true) {
     exit("Unable to send the email.\n");

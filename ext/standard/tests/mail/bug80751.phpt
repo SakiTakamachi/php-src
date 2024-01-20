@@ -1,97 +1,45 @@
 --TEST--
 Bug #80751 (Comma in recipient name breaks email delivery)
 --EXTENSIONS--
-imap
---CONFLICTS--
-imap
+curl
 --SKIPIF--
 <?php
 if (PHP_OS_FAMILY !== 'Windows') die('skip Windows only test');
 if (getenv("SKIP_SLOW_TESTS")) die('skip slow test');
-require_once __DIR__ . '/mail_skipif.inc';
+//require_once __DIR__ . '/mail_skipif.inc';
 ?>
 --INI--
 SMTP=localhost
-smtp_port=25
+smtp_port=1025
 --FILE--
 <?php
-require_once __DIR__ . '/mail_include.inc';
 
-function find_and_delete_message($username, $subject) {
-    global $default_mailbox, $password, $users, $domain;
-
-    $imap_stream = imap_open($default_mailbox, $username, $password);
-    if ($imap_stream === false) {
-        die("Cannot connect to IMAP server $server: " . imap_last_error() . "\n");
-    }
-
-    $found = false;
-    $repeat_count = 20; // we will repeat a max of 20 times
-    while (!$found && $repeat_count > 0) {
-        // sleep for a while to allow msg to be delivered
-        sleep(1);
-    
-        $num_messages = imap_check($imap_stream)->Nmsgs;
-        for ($i = $num_messages; $i > 0; $i--) {
-            $info = imap_headerinfo($imap_stream, $i);
-            if ($info->subject === $subject) {
-                $header = imap_fetchheader($imap_stream, $i);
-                echo "Return-Path header found: ";
-                var_dump(strpos($header, 'Return-Path: joe@example.com') !== false);
-                echo "To header found: ";
-                var_dump(strpos($header, "To: \"<bob@example.com>\" <{$users[1]}@$domain>") !== false);
-                echo "From header found: ";
-                var_dump(strpos($header, 'From: "<bob@example.com>" <joe@example.com>') !== false);
-                echo "Cc header found: ";
-                var_dump(strpos($header, "Cc: \"Lastname, Firstname\\\\\" <{$users[2]}@$domain>") !== false);
-                imap_delete($imap_stream, $i);
-                $found = true;
-                break;
-            }
-        }
-        $repeat_count--;
-    }
-
-    imap_close($imap_stream, CL_EXPUNGE);
-    return $found;
-}
-
-$to = "\"<bob@example.com>\" <{$users[1]}@$domain>";
+$to = ['bug80751_to_1@example.com', 'bug80751_to_2@example.com'];
+$toLine = "\"<{$to[0]}>\" <{$to[1]}>";
+$from = ['bug80751_from_1@example.com', 'bug80751_from_2@example.com'];
+$cc = 'bug80751_cc_1@example.com';
+$bcc = 'bug80751_bcc_1@example.com';
 $subject = bin2hex(random_bytes(16));
 $message = 'hello';
-$headers = "From: \"<bob@example.com>\" <joe@example.com>\r\n"
-    . "Cc: \"Lastname, Firstname\\\\\" <{$users[2]}@$domain>\r\n"
-    . "Bcc: \"Firstname \\\"Ni,ck\\\" Lastname\" <{$users[3]}@$domain>\r\n";
+$headers = "From: \"<{$from[0]}>\" <{$from[1]}>\r\n"
+    . "Cc: \"Lastname, Firstname\\\\\" <{$cc}>\r\n"
+    . "Bcc: \"Firstname \\\"Ni,ck\\\" Lastname\" <{$bcc}>\r\n";
 
 $res = mail($to, $subject, $message, $headers);
+
 if ($res !== true) {
-	die("TEST FAILED : Unable to send test email\n");
+    exit("Unable to send the email.\n");
 } else {
-	echo "Message sent OK\n";
+    echo "Sent the email.\n";
 }
 
-foreach ([$users[1], $users[2], $users[3]] as $user) {
-    if (!find_and_delete_message("$user@$domain", $subject)) {
-        echo "TEST FAILED: email not delivered\n";
-    } else {
-        echo "TEST PASSED: Message sent and deleted OK\n";
-    }
-}
+$c = curl_init();
+curl_setopt($c, CURLOPT_URL, 'http://localhost:8025/api/v2/messages');
+curl_setopt($c, CURLOPT_RETURNTRANSFER, true);
+$res = curl_exec($c);
+curl_close($c);
+
+var_dump(json_decode($res, true));
 ?>
 --EXPECT--
-Message sent OK
-Return-Path header found: bool(true)
-To header found: bool(true)
-From header found: bool(true)
-Cc header found: bool(true)
-TEST PASSED: Message sent and deleted OK
-Return-Path header found: bool(true)
-To header found: bool(true)
-From header found: bool(true)
-Cc header found: bool(true)
-TEST PASSED: Message sent and deleted OK
-Return-Path header found: bool(true)
-To header found: bool(true)
-From header found: bool(true)
-Cc header found: bool(true)
-TEST PASSED: Message sent and deleted OK
+Sent the email

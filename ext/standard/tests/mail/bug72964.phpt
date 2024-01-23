@@ -32,6 +32,10 @@ if ($res !== true) {
 
 echo "Email sent.\n";
 
+$res = file_get_contents("http://localhost:8025/api/v1/messages");
+$list = json_decode($res, true);
+var_dump($list);
+
 $res = searchEmailByToAddress($to);
 
 if (mailCheckResponse($res, $from, $to, $subject, $message)) {

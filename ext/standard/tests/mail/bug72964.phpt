@@ -35,6 +35,11 @@ echo "Email sent.\n";
 $res = file_get_contents("http://localhost:8025/api/v1/messages");
 $list = json_decode($res, true);
 var_dump($list);
+foreach ($list['messages'] as $mail) {
+    $id = $mail['ID'];
+    $raw = file_get_contents("http://localhost:8025/api/v1/messages/{$id}/raw");
+    var_dump($raw);
+}
 
 $res = searchEmailByToAddress($to);
 

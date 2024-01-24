@@ -53,7 +53,9 @@ foreach ([
 --CLEAN--
 <?php
 require_once __DIR__.'/mailpit_utils.inc';
-//deleteEmailByToAddress('bug72964_to@example.com');
+foreach (IMAP_USERS as $emailAddress) {
+    deleteEmailsBySubject($emailAddress, 'mail_bug72964');
+}
 ?>
 --EXPECT--
 Email sent.

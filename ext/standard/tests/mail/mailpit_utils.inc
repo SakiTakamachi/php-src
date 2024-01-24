@@ -29,6 +29,20 @@ function getMailBox(string $emailAddress)
     return $mailBox;
 }
 
+function getEmailUidsBySubject($mailBox, string $subject): array
+{
+    fputs($mailBox, "? SELECT \"INBOX\"\r\n");
+    fread($mailBox, 1024);
+
+    fputs($mailBox, "? UID SEARCH SUBJECT \"{$subject}\"\r\n");
+    $res = trim(fgets($mailBox) ?: '');
+    var_dump($res);
+    fread($mailBox, 1024);
+
+    preg_match('/SEARCH ([0-9 ]+)/i', $res, $matches);
+    return explode(' ', $matches[1] ?? '');
+}
+
 function getEmailsBySubject($mailBox, string $subject): array
 {
     fputs($mailBox, "? SELECT \"INBOX\"\r\n");
@@ -44,7 +58,6 @@ function getEmailsBySubject($mailBox, string $subject): array
 
     $mails = [];
     foreach ($uids as $uid) {
-        $uid = trim($uid);
         if (!$uid) {
             continue;
         }
@@ -102,23 +115,21 @@ function mailCheckResponse($res, string $from, string $to, string $subject, stri
         trim($res['Body'] ?? '') === trim($message);
 }
 
-function getCcAddresses($res): array
+function deleteEmailsBySubject(array $emailAddresses, string $subject)
 {
-    return array_column($res['Cc'], 'Address');
-}
-
-function getBccAddresses($res): array
-{
-    return array_column($res['Bcc'], 'Address');
-}
-
-function deleteEmailByToAddress(string $to)
-{
-    $query = urlencode("to:{$to}");
-    file_get_contents("http://localhost:8025/api/v1/search?query={$query}", false, stream_context_create([
-        'http' => [
-            'method' => 'DELETE',
-        ],
-    ]));
+    foreach ($emailAddresses as $emailAddress) {
+        $mailBox = getMailBox($emailAddress);
+        $uids = getEmailUidsBySubject($mailBox, $subject);
+        foreach ($uids as $uid) {
+            if (!$uid) {
+                continue;
+            }
+            fputs($mailBox, "? UID STORE {$uid} +FLAGS (\\Deleted)\r\n");
+            fread($mailBox, 1024);
+        }
+        fputs($mailBox, "? EXPUNGE\r\n");
+        fread($mailBox, 1024);
+        fclose($mailBox);
+    }
 }
 ?>

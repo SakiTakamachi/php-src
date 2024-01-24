@@ -64,7 +64,6 @@ HERE;
 
     echo "Email sent.\n";
 
-    $res = searchEmailByToAddress($to);
     $mailBox = getMailBox($to);
     $res = getEmailsBySubject($mailBox, $subject);
     fclose($mailBox);

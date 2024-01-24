@@ -56,7 +56,10 @@ function getHeaders($mailBox, $uid): array
     $headers = [];
     fputs($mailBox, "? UID FETCH {$uid} RFC822.HEADER\r\n");
     while ($outputLine = fgets($mailBox)) {
-        $header .= $outputLine;
+        $outputLine = trim($outputLine);
+        if (!$outputLine) {
+            continue;
+        }
         $items = explode(':', $outputLine);
         if (count($items) > 1) {
             $key = trim($items[0]);

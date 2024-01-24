@@ -50,7 +50,6 @@ function getEmailsBySubject($mailBox, string $subject): array
 
     fputs($mailBox, "? UID SEARCH SUBJECT \"{$subject}\"\r\n");
     $res = trim(fgets($mailBox) ?: '');
-    var_dump($res);
     fread($mailBox, 1024);
 
     preg_match('/SEARCH ([0-9 ]+)/i', $res, $matches);
@@ -108,6 +107,7 @@ function getBody($mailBox, $uid): string
 
 function mailCheckResponse($res, string $from, string $to, string $subject, string $message): bool
 {
+    var_dump($res);
     return $res &&
         ($res['From'][0] ?? null) === $from &&
         ($res['To'][0] ?? null) === $to &&

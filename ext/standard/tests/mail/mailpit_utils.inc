@@ -11,7 +11,7 @@ define('MAIL_USERS', [
     'foo@example.com',
 ]);
 
-function imap_connect(string $mailAddress): bool
+function imap_connect(string $mailAddress)
 {
     if (($imap = fsockopen(HOST, IMAP_PORT)) === false) {
         die('cannot open imap socket');
@@ -19,7 +19,7 @@ function imap_connect(string $mailAddress): bool
 
     fputs($imap, "? login {$mailAddress} {MAIL_PASSWORD}\r\n");
     while ($outputLine = fgets($imap)) {
-        if (preg_match('/(NO|failed|Failure)/i', $line)) {
+        if (preg_match('/(NO|failed|Failure)/i', $outputLine)) {
             fclose($fp);
             die('login failed');
         }

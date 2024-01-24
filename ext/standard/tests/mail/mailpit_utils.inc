@@ -34,17 +34,20 @@ function getEmailsBySubject($mailBox, string $subject): array
     fputs($mailBox, "? SELECT \"INBOX\"\r\n");
     fread($mailBox, 1024);
 
-    fputs($mailBox, "? UID SEARCH charset utf-8 subject \"{$subject}\"\r\n");
+    fputs($mailBox, "? UID SEARCH SUBJECT \"{$subject}\"\r\n");
     $res = trim(fgets($mailBox) ?: '');
     var_dump($res);
     fread($mailBox, 1024);
 
-    preg_match('/SEARCH ([0-9 ].*)/i', $res, $matches);
+    preg_match('/SEARCH ([0-9 ]+)/i', $res, $matches);
     $uids = explode(' ', $matches[1] ?? '');
 
     $mails = [];
     foreach ($uids as $uid) {
         $uid = trim($uid);
+        if (!$uid) {
+            continue;
+        }
         $mails[] = getHeaders($mailBox, $uid) + ['Body' => getBody($mailBox, $uid)];
     }
     return $mails;
@@ -67,7 +70,9 @@ function getHeaders($mailBox, $uid): array
             $headers[$key][] = trim($items[1]);
             $value = trim($items[1]);
         } else {
-            $headers[$key][] = trim($items[0]);
+            if ($key) {
+                $headers[$key][] = trim($items[0]);
+            }
         }
     }
     return $headers;

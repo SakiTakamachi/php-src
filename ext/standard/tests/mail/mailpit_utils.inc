@@ -20,7 +20,7 @@ function imap_connect(string $mailAddress)
     fputs($imap, "? login {$mailAddress} {MAIL_PASSWORD}\r\n");
     while ($outputLine = fgets($imap)) {
         if (preg_match('/(NO|failed|Failure)/i', $outputLine)) {
-            fclose($fp);
+            fclose($imap);
             die('login failed');
         }
     }

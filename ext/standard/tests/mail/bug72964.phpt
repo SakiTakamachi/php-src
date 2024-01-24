@@ -14,7 +14,7 @@ sendmail_from=from@example.com
 
 require_once __DIR__.'/mailpit_utils.inc';
 
-$users = MAIL_USERS;
+$users = IMAP_USERS;
 
 $to = $users[0];
 $from = ini_get('sendmail_from');
@@ -37,6 +37,7 @@ echo "Email sent.\n";
 foreach ($users as $email) {
     $imap = imap_connect($email);
     $res = getEmailsBySubject($imap, $subject);
+    fclose($imap);
     var_dump($res);
 }
 exit();

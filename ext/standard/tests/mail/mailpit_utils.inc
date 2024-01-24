@@ -1,10 +1,10 @@
 <?php
 
-define('HOST', 'localhost');
+define('IMAP_HOST', 'localhost');
 define('IMAP_PORT', 143);
-define('MAIL_ADMIN_USER', 'webmaster@example.com');
-define('MAIL_PASSWORD', 'p4ssw0rd');
-define('MAIL_USERS', [
+define('IMAP_ADMIN_USER', 'webmaster@example.com');
+define('IMAP_PASSWORD', 'p4ssw0rd');
+define('IMAP_USERS', [
     'webmaster@example.com',
     'info@example.com',
     'admin@example.com',
@@ -13,11 +13,12 @@ define('MAIL_USERS', [
 
 function imap_connect(string $mailAddress)
 {
-    if (($imap = fsockopen(HOST, IMAP_PORT)) === false) {
+    if (($imap = fsockopen(IMAP_HOST, IMAP_PORT)) === false) {
         die('cannot open imap socket');
     }
 
-    fputs($imap, "? login {$mailAddress} {MAIL_PASSWORD}\r\n");
+    $password = IMAP_PASSWORD;
+    fputs($imap, "? login {$mailAddress} {$password}\r\n");
     while ($outputLine = fgets($imap)) {
         if (preg_match('/(NO|failed|Failure)/i', $outputLine)) {
             fclose($imap);

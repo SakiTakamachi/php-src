@@ -11,68 +11,72 @@ define('IMAP_USERS', [
     'foo@example.com',
 ]);
 
-function imap_connect(string $mailAddress)
+function getMailBox(string $emailAddress)
 {
-    if (($imap = fsockopen(IMAP_HOST, IMAP_PORT)) === false) {
+    if (($mailBox = fsockopen(IMAP_HOST, IMAP_PORT)) === false) {
         die('cannot open imap socket');
     }
 
     $password = IMAP_PASSWORD;
-    fputs($imap, "? login {$mailAddress} {$password}\r\n");
-    while ($outputLine = fgets($imap)) {
+    fputs($mailBox, "? login {$emailAddress} {$password}\r\n");
+    while ($outputLine = fgets($mailBox)) {
         if (preg_match('/(NO|failed|Failure)/i', $outputLine)) {
-            fclose($imap);
+            fclose($mailBox);
             die('login failed');
         }
     }
 
-    return $imap;
+    return $mailBox;
 }
 
-function getEmailsBySubject($imap, string $subject)
+function getEmailsBySubject($mailBox, string $subject): array
 {
-    fputs($imap, "? SELECT \"INBOX\"\r\n");
-    fread($imap, 1024);
+    fputs($mailBox, "? SELECT \"INBOX\"\r\n");
+    fread($mailBox, 1024);
 
-    fputs($imap, "? UID SEARCH charset utf-8 subject \"{$subject}\"\r\n");
-    $res = fgets($imap);
-    fread($imap, 1024);
+    fputs($mailBox, "? UID SEARCH charset utf-8 subject \"{$subject}\"\r\n");
+    $res = trim(fgets($mailBox) ?: '');
+    fread($mailBox, 1024);
 
     preg_match('/SEARCH ([0-9 ].*)/i', $res, $matches);
     $uids = explode(' ', $matches[1] ?? '');
 
     $mails = [];
     foreach ($uids as $uid) {
-        $mail = '';
-        fputs($imap, "? UID FETCH {$uid} RFC822.HEADER\r\n");
-        while ($outputLine = fgets($imap)) {
-            $mail .= $outputLine;
-        }
-        $mails[] = $mail;
+        $uid = trim($uid);
+        $mails[] = getHeaders($mailBox, $uid) + ['Body' => getBody($mailBox, $uid)];
     }
-
     return $mails;
 }
 
-function searchEmailByToAddress(string $to): ?array
+function getHeaders($mailBox, $uid): array
 {
-    $query = urlencode("to:{$to}");
-    $res = file_get_contents("http://localhost:8025/api/v1/search?query=$query");
-    $list = json_decode($res, true);
-
-    $id = $list['messages'][0]['ID'] ?? null;
-    if (!$id) {
-        return null;
+    $key = null;
+    $headers = [];
+    fputs($mailBox, "? UID FETCH {$uid} RFC822.HEADER\r\n");
+    while ($outputLine = fgets($mailBox)) {
+        $header .= $outputLine;
+        $items = explode(':', $outputLine);
+        if (count($items) > 1) {
+            $key = trim($items[0]);
+            $headers[$key] = [];
+            $headers[$key][] = trim($items[1]);
+            $value = trim($items[1]);
+        } else {
+            $headers[$key][] = trim($items[0]);
+        }
     }
-
-    $res = file_get_contents("http://localhost:8025/api/v1/message/{$id}");
-    return json_decode($res, true);
+    return $headers;
 }
 
-function getHeaders($res): array
+function getBody($mailBox, $uid): string
 {
-    $headerRes = file_get_contents("http://localhost:8025/api/v1/message/{$res['ID']}/headers");
-    return json_decode($headerRes, true);
+    $body = '';
+    fputs($mailBox, "? UID FETCH {$uid} RFC822.TEXT\r\n");
+    while ($outputLine = fgets($mailBox)) {
+        $body .= $outputLine;
+    }
+    return $body;
 }
 
 function mailCheckResponse($res, string $from, string $to, string $subject, string $message): bool

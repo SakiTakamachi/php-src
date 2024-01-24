@@ -34,10 +34,10 @@ if ($res !== true) {
 
 echo "Email sent.\n";
 
-foreach ($users as $email) {
-    $imap = imap_connect($email);
-    $res = getEmailsBySubject($imap, $subject);
-    fclose($imap);
+foreach ($users as $emailAddress) {
+    $mailBox = getMailBox($emailAddress);
+    $res = getEmailsBySubject($mailBox, $subject);
+    fclose($mailBox);
     var_dump($res);
 }
 exit();

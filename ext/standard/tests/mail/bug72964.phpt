@@ -34,45 +34,31 @@ if ($res !== true) {
 
 echo "Email sent.\n";
 
-foreach ($users as $emailAddress) {
-    $mailBox = getMailBox($emailAddress);
-    $res = getEmailsBySubject($mailBox, $subject);
-    fclose($mailBox);
-    var_dump($res);
-}
-exit();
+foreach ([
+    'to' => [$to],
+    'cc' => $cc,
+    'bcc' => $bcc,
+] as $type => $emailAddresses) {
+    foreach ($emailAddresses as $emailAddress) {
+        $mailBox = getMailBox($emailAddress);
+        $res = getEmailsBySubject($mailBox, $subject);
+        fclose($mailBox);
 
-if (mailCheckResponse($res, $from, $to, $subject, $message)) {
-    echo "Found the email sent.\n";
-
-    $ccAddresses = getCcAddresses($res);
-    if (in_array($cc[0], $ccAddresses, true)) {
-        echo "cc1 is set.\n";
-    }
-
-    if (in_array($cc[1], $ccAddresses, true)) {
-        echo "cc2 is set.\n";
-    }
-
-    $bccAddresses = getBccAddresses($res);
-    if (in_array($bcc[0], $bccAddresses, true)) {
-        echo "bcc1 is set.\n";
-    }
-
-    if (in_array($bcc[1], $bccAddresses, true)) {
-        echo "bcc2 is set.";
+        if (mailCheckResponse($res, $from, $to, $subject, $message)) {
+            echo "Found the email. {$type} received.\n";
+        }
     }
 }
 ?>
 --CLEAN--
 <?php
 require_once __DIR__.'/mailpit_utils.inc';
-deleteEmailByToAddress('bug72964_to@example.com');
+//deleteEmailByToAddress('bug72964_to@example.com');
 ?>
 --EXPECT--
 Email sent.
-Found the email sent.
-cc1 is set.
-cc2 is set.
-bcc1 is set.
-bcc2 is set.
+Found the email. to received.
+Found the email. cc received.
+Found the email. cc received.
+Found the email. bcc received.
+Found the email. bcc received.

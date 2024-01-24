@@ -66,13 +66,18 @@ function getHeaders($mailBox, $uid): array
         $items = explode(':', $outputLine);
         if (count($items) > 1) {
             $key = trim($items[0]);
+            $val = trim($items[1]);
             $headers[$key] = [];
-            $headers[$key][] = trim($items[1]);
-            $value = trim($items[1]);
         } else {
-            if ($key) {
-                $headers[$key][] = trim($items[0]);
+            $val = trim($items[0]);
+            if (!$key || $val === '? OK UID completed' || $val === ')') {
+                continue;
             }
+        }
+
+        $vals = explode(',', $val);
+        foreach ($vals as $val) {
+            $headers[$key][] = trim($val);
         }
     }
     return $headers;
@@ -85,16 +90,16 @@ function getBody($mailBox, $uid): string
     while ($outputLine = fgets($mailBox)) {
         $body .= $outputLine;
     }
-    return $body;
+    return str_replace(")\r\n? OK UID completed", '', $body);
 }
 
 function mailCheckResponse($res, string $from, string $to, string $subject, string $message): bool
 {
     return $res &&
-        ($res['From']['Address'] ?? null) === $from &&
-        ($res['To'][0]['Address'] ?? null) === $to &&
-        ($res['Subject'] ?? null) === $subject &&
-        trim($res['Text'] ?? '') === trim($message);
+        ($res['From'][0] ?? null) === $from &&
+        ($res['To'][0] ?? null) === $to &&
+        ($res['Subject'][0] ?? null) === $subject &&
+        trim($res['Body'] ?? '') === trim($message);
 }
 
 function getCcAddresses($res): array

@@ -50,7 +50,7 @@ function getEmailsBySubject($imap, string $subject)
         $mails[] = $mail;
     }
 
-    return $mail;
+    return $mails;
 }
 
 function searchEmailByToAddress(string $to): ?array

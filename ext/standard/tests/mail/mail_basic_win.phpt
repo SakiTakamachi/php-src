@@ -1,7 +1,7 @@
 --TEST--
 Test mail() function : basic functionality (win)
 --SKIPIF--
-<?php die('skip test'); require_once __DIR__.'/mail_windows_skipif.inc'; ?>
+<?php require_once __DIR__.'/mail_windows_skipif.inc'; ?>
 --INI--
 SMTP=localhost
 smtp_port=25
@@ -65,6 +65,9 @@ HERE;
     echo "Email sent.\n";
 
     $res = searchEmailByToAddress($to);
+    $mailBox = getMailBox($to);
+    $res = getEmailsBySubject($mailBox, $subject);
+    fclose($mailBox);
 
     if (mailCheckResponse($res, $from, $to, $subject, $message)) {
         echo "Found the email sent.\n\n";
@@ -74,10 +77,10 @@ HERE;
 --CLEAN--
 <?php
 require_once __DIR__.'/mailpit_utils.inc';
-deleteEmailByToAddress('mail_basic_win_0@example.com');
-deleteEmailByToAddress('mail_basic_win_1@example.com');
-deleteEmailByToAddress('mail_basic_win_2@example.com');
-deleteEmailByToAddress('mail_basic_win_3@example.com');
+deleteEmailsBySubject('mail_basic_win_0@example.com', '0: Basic PHPT test for mail() function');
+deleteEmailsBySubject('mail_basic_win_1@example.com', '1: Basic PHPT test for mail() function');
+deleteEmailsBySubject('mail_basic_win_2@example.com', '2: Basic PHPT test for mail() function');
+deleteEmailsBySubject('mail_basic_win_3@example.com', '3: Basic PHPT test for mail() function');
 ?>
 --EXPECT--
 ========== Case 0 ==========

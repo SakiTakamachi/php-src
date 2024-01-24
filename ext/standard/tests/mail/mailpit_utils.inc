@@ -36,6 +36,7 @@ function getEmailsBySubject($mailBox, string $subject): array
 
     fputs($mailBox, "? UID SEARCH charset utf-8 subject \"{$subject}\"\r\n");
     $res = trim(fgets($mailBox) ?: '');
+    var_dump($res);
     fread($mailBox, 1024);
 
     preg_match('/SEARCH ([0-9 ].*)/i', $res, $matches);

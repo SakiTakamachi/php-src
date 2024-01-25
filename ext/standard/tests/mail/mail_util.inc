@@ -147,12 +147,12 @@ class MailBox
         return isset($matches[1]) ? explode(' ', trim($matches[1])) : [];
     }
 
-    public function getMailsBySubject(string $subject): array
+    public function getMailsBySubject(string $subject): MailCollection
     {
-        return array_map(
-            fn($uid) => new Mail($this->getHeaders($uid) + ['Body' => $this->getBody($uid)]),
+        return new MailCollection(array_map(
+            fn($uid) => $this->getHeaders($uid) + ['Body' => $this->getBody($uid)],
             $this->getUidsBySubject($subject),
-        );
+        ));
     }
 
     private function getHeaders(int $uid): array
@@ -204,7 +204,7 @@ class MailBox
     }
 }
 
-class Mail
+class MailCollection
 {
     public function __construct(private ?array $mailData) {}
 

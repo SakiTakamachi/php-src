@@ -19,8 +19,12 @@ function getMailBox(string $emailAddress)
     }
 
     $password = IMAP_PASSWORD;
-    fputs($mailBox, "? login {$emailAddress} {$password}\r\n");
-    while ($outputLine = fgets($mailBox)) {
+    fputs($mailBox, "1 login {$emailAddress} {$password}\r\n");
+    while (!feof($mailBox)) {
+        $outputLine = fgets($mailBox);
+        if (preg_match('/^\1 OK/i', $outputLine)) {
+            break;
+        }
         if (preg_match('/(NO|failed|Failure)/i', $outputLine)) {
             fclose($mailBox);
             die('login failed');
@@ -34,13 +38,30 @@ function getMailBox(string $emailAddress)
 function getEmailUidsBySubject($mailBox, string $subject): array
 {
     $start = microtime(true);
-    fputs($mailBox, "? SELECT \"INBOX\"\r\n");
-    fread($mailBox, 1024);
+    fputs($mailBox, "2 SELECT \"ANY\"\r\n");
+    while (!feof($mailBox)) {
+        $outputLine = fgets($mailBox);
+        if (preg_match('/(NO|failed|Failure)/i', $outputLine)) {
+            var_dump('invaid mailbox: '.$outputLine);
+        }
+    }
 
-    fputs($mailBox, "? UID SEARCH SUBJECT \"{$subject}\"\r\n");
+    fputs($mailBox, "3 SELECT \"INBOX\"\r\n");
+    while (!feof($mailBox)) {
+        $outputLine = fgets($mailBox);
+        if (preg_match('/^\3 OK/i', $outputLine)) {
+            break;
+        }
+    }
+
+    fputs($mailBox, "4 UID SEARCH SUBJECT \"{$subject}\"\r\n");
     $res = trim(fgets($mailBox) ?: '');
-    var_dump($res);
-    fread($mailBox, 1024);
+    while (!feof($mailBox)) {
+        $outputLine = fgets($mailBox);
+        if (preg_match('/^\4 OK/i', $outputLine)) {
+            break;
+        }
+    }
 
     preg_match('/SEARCH ([0-9 ]+)/i', $res, $matches);
     var_dump('get uids: '.microtime(true) - $start);
@@ -50,12 +71,22 @@ function getEmailUidsBySubject($mailBox, string $subject): array
 function getEmailsBySubject($mailBox, string $subject): array
 {
     $start = microtime(true);
-    fputs($mailBox, "? SELECT \"INBOX\"\r\n");
-    fread($mailBox, 1024);
+    fputs($mailBox, "5 SELECT \"INBOX\"\r\n");
+    while (!feof($mailBox)) {
+        $outputLine = fgets($mailBox);
+        if (preg_match('/^\5 OK/i', $outputLine)) {
+            break;
+        }
+    }
 
-    fputs($mailBox, "? UID SEARCH SUBJECT \"{$subject}\"\r\n");
+    fputs($mailBox, "6 UID SEARCH SUBJECT \"{$subject}\"\r\n");
     $res = trim(fgets($mailBox) ?: '');
-    fread($mailBox, 1024);
+    while (!feof($mailBox)) {
+        $outputLine = fgets($mailBox);
+        if (preg_match('/^\6 OK/i', $outputLine)) {
+            break;
+        }
+    }
 
     preg_match('/SEARCH ([0-9 ]+)/i', $res, $matches);
     $uids = explode(' ', $matches[1] ?? '');
@@ -76,8 +107,12 @@ function getHeaders($mailBox, $uid): array
     $start = microtime(true);
     $key = null;
     $headers = [];
-    fputs($mailBox, "? UID FETCH {$uid} RFC822.HEADER\r\n");
-    while ($outputLine = fgets($mailBox)) {
+    fputs($mailBox, "7 UID FETCH {$uid} RFC822.HEADER\r\n");
+    while (!feof($mailBox)) {
+        $outputLine = fgets($mailBox);
+        if (preg_match('/^\7 OK/i', $outputLine)) {
+            break;
+        }
         $outputLine = trim($outputLine);
         if (!$outputLine) {
             continue;
@@ -107,10 +142,14 @@ function getBody($mailBox, $uid): string
 {
     $start = microtime(true);
     $body = '';
-    fputs($mailBox, "? UID FETCH {$uid} RFC822.TEXT\r\n");
+    fputs($mailBox, "8 UID FETCH {$uid} RFC822.TEXT\r\n");
 
     $first = false;
-    while ($outputLine = fgets($mailBox)) {
+    while (!feof($mailBox)) {
+        $outputLine = fgets($mailBox);
+        if (preg_match('/^\8 OK/i', $outputLine)) {
+            break;
+        }
         /*
         if (!$first) {
             $first = true;

@@ -13,7 +13,6 @@ sendmail_from=from@example.com
 <?php
 
 require_once __DIR__.'/mail_util.inc';
-
 $users = MailBox::USERS;
 
 $to = $users[0];

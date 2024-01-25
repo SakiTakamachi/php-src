@@ -12,11 +12,12 @@ sendmail_from=from@example.com
 --FILE--
 <?php
 
-require_once __DIR__.'/mailpit_utils.inc';
+require_once __DIR__.'/mail_util.inc';
+$users = MailBox::USERS;
 
-$to = 'bug80706_to@example.com';
+$to = $users[0];
 $from = ini_get('sendmail_from');
-$bcc = 'bug80706_bcc@example.com';
+$bcc = $users[2];
 $subject = 'mail_bug80706';
 $message = 'hello';
 $xMailer = 'bug80706_x_mailer';

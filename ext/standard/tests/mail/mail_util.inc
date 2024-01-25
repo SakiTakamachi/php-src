@@ -190,7 +190,7 @@ class MailBox
     {
         $this->mailConnecter->send(self::FETCH_BODY, "UID FETCH {$uid} (BODY[TEXT])");
         $body = $this->mailConnecter->getResponse(self::FETCH_BODY);
-        preg_match('/^\* 1 FETCH.+?\r\n (.+)\r\n\) \r\nA00006.+?$/is', $body, $matches);
+        preg_match('/^\* 1 FETCH.+?\r?\n (.+)\r?\n\) \r?\nA00006.+?$/is', $body, $matches);
         return $matches[1] ?? '';
     }
 

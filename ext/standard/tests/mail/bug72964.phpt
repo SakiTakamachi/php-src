@@ -43,6 +43,7 @@ foreach ([
         $mailBox = MailBox::login($mailAddress);
         $res = $mailBox->getMailsBySubject($subject);
         $mailBox->logout();
+        var_dump($res);
 
         /*
         if (mailCheckResponse($res, $from, $to, $subject, $message)) {

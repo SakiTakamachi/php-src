@@ -1,7 +1,7 @@
 --TEST--
 Test mail() function : basic functionality (win)
 --SKIPIF--
-<?php die('skip test); require_once __DIR__.'/mail_windows_skipif.inc'; ?>
+<?php die('skip test'); require_once __DIR__.'/mail_windows_skipif.inc'; ?>
 --INI--
 SMTP=localhost
 smtp_port=25

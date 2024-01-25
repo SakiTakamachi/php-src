@@ -12,9 +12,9 @@ sendmail_from=from@example.com
 --FILE--
 <?php
 
-require_once __DIR__.'/mailpit_utils.inc';
+require_once __DIR__.'/mail_util.inc';
 
-$users = IMAP_USERS;
+$users = MailBox::USERS;
 
 $to = $users[0];
 $from = ini_get('sendmail_from');
@@ -26,9 +26,7 @@ $headers = "From: {$from}\r\n"
     . "Cc: {$cc[0]},\r\n\t{$cc[1]}\r\n"
     . "Bcc: {$bcc[0]},\r\n {$bcc[1]}\r\n";
 
-$start = microtime(true);
 $res = mail($to, $subject, $message, $headers);
-var_dump('send: '.microtime(true) - $start);
 
 if ($res !== true) {
     die("Unable to send the email.\n");
@@ -38,17 +36,19 @@ echo "Email sent.\n";
 
 foreach ([
     'to' => [$to],
-    //'cc' => $cc,
-    //'bcc' => $bcc,
-] as $type => $emailAddresses) {
-    foreach ($emailAddresses as $emailAddress) {
-        $mailBox = getMailBox($emailAddress);
-        $res = getEmailsBySubject($mailBox, $subject);
-        fclose($mailBox);
+    'cc' => $cc,
+    'bcc' => $bcc,
+] as $type => $mailAddresses) {
+    foreach ($mailAddresses as $mailAddress) {
+        $mailBox = MailBox::login($mailAddress);
+        $res = $mailBox->getMailsBySubject($subject);
+        $mailBox->logout();
 
+        /*
         if (mailCheckResponse($res, $from, $to, $subject, $message)) {
             echo "Found the email. {$type} received.\n";
         }
+        */
     }
 }
 ?>

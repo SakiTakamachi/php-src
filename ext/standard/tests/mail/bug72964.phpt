@@ -26,7 +26,9 @@ $headers = "From: {$from}\r\n"
     . "Cc: {$cc[0]},\r\n\t{$cc[1]}\r\n"
     . "Bcc: {$bcc[0]},\r\n {$bcc[1]}\r\n";
 
+$start = microtime(true);
 $res = mail($to, $subject, $message, $headers);
+var_dump('send: '.microtime(true) - $start);
 
 if ($res !== true) {
     die("Unable to send the email.\n");

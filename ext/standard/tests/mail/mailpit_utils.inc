@@ -13,6 +13,7 @@ define('IMAP_USERS', [
 
 function getMailBox(string $emailAddress)
 {
+    $start = microtime(true);
     if (($mailBox = fsockopen(IMAP_HOST, IMAP_PORT)) === false) {
         die('cannot open imap socket');
     }
@@ -25,12 +26,14 @@ function getMailBox(string $emailAddress)
             die('login failed');
         }
     }
+    var_dump('get mail box: '.microtime(true) - $start);
 
     return $mailBox;
 }
 
 function getEmailUidsBySubject($mailBox, string $subject): array
 {
+    $start = microtime(true);
     fputs($mailBox, "? SELECT \"INBOX\"\r\n");
     fread($mailBox, 1024);
 
@@ -40,11 +43,13 @@ function getEmailUidsBySubject($mailBox, string $subject): array
     fread($mailBox, 1024);
 
     preg_match('/SEARCH ([0-9 ]+)/i', $res, $matches);
+    var_dump('get uids: '.microtime(true) - $start);
     return explode(' ', $matches[1] ?? '');
 }
 
 function getEmailsBySubject($mailBox, string $subject): array
 {
+    $start = microtime(true);
     fputs($mailBox, "? SELECT \"INBOX\"\r\n");
     fread($mailBox, 1024);
 
@@ -62,11 +67,13 @@ function getEmailsBySubject($mailBox, string $subject): array
         }
         $mails[] = getHeaders($mailBox, $uid) + ['Body' => getBody($mailBox, $uid)];
     }
+    var_dump('get mails: '.microtime(true) - $start);
     return $mails;
 }
 
 function getHeaders($mailBox, $uid): array
 {
+    $start = microtime(true);
     $key = null;
     $headers = [];
     fputs($mailBox, "? UID FETCH {$uid} RFC822.HEADER\r\n");
@@ -92,16 +99,20 @@ function getHeaders($mailBox, $uid): array
             $headers[$key][] = trim($val);
         }
     }
+    var_dump('get headers: '.microtime(true) - $start);
     return $headers;
 }
 
 function getBody($mailBox, $uid): string
 {
+    $start = microtime(true);
     $body = '';
     fputs($mailBox, "? UID FETCH {$uid} RFC822.TEXT\r\n");
+    fgets($mailBox); // 1st line is unnecessary
     while ($outputLine = fgets($mailBox)) {
         $body .= $outputLine;
     }
+    var_dump('get body: '.microtime(true) - $start);
     return str_replace(")\r\n? OK UID completed", '', $body);
 }
 
@@ -117,6 +128,7 @@ function mailCheckResponse($res, string $from, string $to, string $subject, stri
 
 function deleteEmailsBySubject(array $emailAddresses, string $subject)
 {
+    $start = microtime(true);
     foreach ($emailAddresses as $emailAddress) {
         $mailBox = getMailBox($emailAddress);
         $uids = getEmailUidsBySubject($mailBox, $subject);
@@ -131,5 +143,6 @@ function deleteEmailsBySubject(array $emailAddresses, string $subject)
         fread($mailBox, 1024);
         fclose($mailBox);
     }
+    var_dump('delete: '.microtime(true) - $start);
 }
 ?>

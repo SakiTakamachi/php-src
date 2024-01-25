@@ -48,7 +48,7 @@ foreach (['to' => $to, 'bcc' => $bcc] as $type => $mailAddress) {
     $mailBox->deleteMailsBySubject($subject);
     $mail = $mailBox->getMailsBySubject($subject);
     $mailBox->logout();
-    var_dump('after delete: '.count($mail));
+    var_dump('after delete: '.$mail->count());
 }
 ?>
 --CLEAN--

@@ -108,8 +108,13 @@ function getBody($mailBox, $uid): string
     $start = microtime(true);
     $body = '';
     fputs($mailBox, "? UID FETCH {$uid} RFC822.TEXT\r\n");
-    fgets($mailBox); // 1st line is unnecessary
+
+    $first = false;
     while ($outputLine = fgets($mailBox)) {
+        if (!$first) {
+            $first = true;
+            continue;
+        }
         $body .= $outputLine;
     }
     var_dump('get body: '.microtime(true) - $start);

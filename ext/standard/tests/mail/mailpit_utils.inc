@@ -38,13 +38,6 @@ function getMailBox(string $emailAddress)
 function getEmailUidsBySubject($mailBox, string $subject): array
 {
     $start = microtime(true);
-    fputs($mailBox, "2 SELECT \"ANY\"\r\n");
-    while (!feof($mailBox)) {
-        $outputLine = fgets($mailBox);
-        if (preg_match('/(NO|failed|Failure)/i', $outputLine)) {
-            var_dump('invaid mailbox: '.$outputLine);
-        }
-    }
 
     fputs($mailBox, "3 SELECT \"INBOX\"\r\n");
     while (!feof($mailBox)) {

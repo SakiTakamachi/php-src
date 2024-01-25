@@ -150,7 +150,7 @@ class MailBox
     public function getMailsBySubject(string $subject): MailCollection
     {
         return new MailCollection(array_map(
-            fn($uid) => $this->getHeaders($uid) + ['Body' => $this->getBody($uid)],
+            fn($uid) => $this->getHeaders($uid) + ['body' => $this->getBody($uid)],
             $this->getUidsBySubject($subject),
         ));
     }
@@ -169,7 +169,7 @@ class MailBox
             $items = explode(':', $line);
             if (count($items) > 1) {
                 $key = trim($items[0]);
-                $val = trim($items[1]);
+                $val = strtolower(trim($items[1]));
                 $headers[$key] = [];
             } else {
                 $val = trim($items[0]);
@@ -189,9 +189,13 @@ class MailBox
     private function getBody(int $uid): string
     {
         $this->mailConnecter->send(self::FETCH_BODY, "UID FETCH {$uid} (BODY[TEXT])");
-        $body = $this->mailConnecter->getResponse(self::FETCH_BODY);
-        preg_match('/^\* 1 FETCH.+?\r?\n (.+)\r?\n\) \r?\nA00006.+?$/is', $body, $matches);
-        return $matches[1] ?? '';
+        $body = $this->mailConnecter->getResponse(self::FETCH_BODY, true);
+        $count = count($body);
+        if ($count <= 5) {
+            return '';
+        }
+        
+        return implode("\r\n", array_slice($body, 1, $count - 5));
     }
 
     public function deleteMailsBySubject(string $subject): void
@@ -243,6 +247,6 @@ class MailCollection
 
     public function getBody(int $offset = 0): ?string
     {
-        return $this->mailData[$offset]['Body'] ?? null;
+        return $this->mailData[$offset]['body'] ?? null;
     }
 }

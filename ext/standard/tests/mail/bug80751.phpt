@@ -12,19 +12,20 @@ smtp_port=25
 --FILE--
 <?php
 
-require_once __DIR__.'/mailpit_utils.inc';
+require_once __DIR__.'/mail_util.inc';
+$users = MailBox::USERS;
 
-$to = 'bug80751_to@example.com';
+$to = $users[0];
 $toLine = "\"<bug80751_to_name@example.com>\" <{$to}>";
 
 $from = 'bug80751_from@example.com';
 $fromLine = "\"<bug80751_from_name@example.com>\" <{$from}>";
 
-$cc = 'bug80751_cc@example.com';
+$cc = $users[1];
 $ccLine = "\"Lastname, Firstname\\\\\" <{$cc}>";
 
-$bcc = 'bug80751_bcc@example.com';
-$subject = bin2hex(random_bytes(16));
+$bcc = $users[2];
+$subject = 'mail_bug80751';
 $message = 'hello';
 
 $headers = "From: {$fromLine}\r\n"
@@ -41,34 +42,29 @@ echo "Email sent.\n";
 
 $res = searchEmailByToAddress($to);
 
-if (mailCheckResponse($res, $from, $to, $subject, $message)) {
-    echo "Found the email sent.\n";
+foreach (['to' => $to, 'cc' => $cc, 'bcc' => $bcc] as $type => $mailAddress) {
+    $mailBox = MailBox::login($mailAddress);
+    $mail = $mailBox->getMailsBySubject($subject);
+    $mailBox->logout();
 
-    $ccAddresses = getCcAddresses($res);
-    if (in_array($cc, $ccAddresses, true)) {
-        echo "cc is set.\n";
+    if ($mail->isAsExpected($from, $to, $subject, $message)) {
+        echo "Found the email. {$recipient} received.\n";
     }
 
-    $bccAddresses = getBccAddresses($res);
-    if (in_array($bcc, $bccAddresses, true)) {
-        echo "bcc is set.\n";
-    }
-
-    if ($res['ReturnPath'] === $from) {
+    if ($mail->get('ReturnPath') === $from) {
         echo "Return-Path is as expected.\n";
     }
 
-    $headers = getHeaders($res);
-    if ($headers['To'][0] === $toLine) {
+    if ($mail->get('To') === $toLine) {
         echo "To header is as expected.\n";
     }
 
-    if ($headers['From'][0] === $fromLine) {
+    if ($mail->get('From') === $fromLine) {
         echo "From header is as expected.\n";
     }
 
-    if ($headers['Cc'][0] === $ccLine) {
-        echo "Cc header is as expected.";
+    if ($mail->get('Cc') === $ccLine) {
+        echo "Cc header is as expected.\n\n";
     }
 }
 ?>
@@ -79,9 +75,19 @@ deleteEmailByToAddress('bug72964_to@example.com');
 ?>
 --EXPECT--
 Email sent.
-Found the email sent.
-cc is set.
-bcc is set.
+Found the email. to received.
+Return-Path is as expected.
+To header is as expected.
+From header is as expected.
+Cc header is as expected.
+
+Found the email. cc received.
+Return-Path is as expected.
+To header is as expected.
+From header is as expected.
+Cc header is as expected.
+
+Found the email. bcc received.
 Return-Path is as expected.
 To header is as expected.
 From header is as expected.

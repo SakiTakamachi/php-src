@@ -33,21 +33,6 @@ if ($res !== true) {
 
 echo "Email sent.\n";
 
-$res = searchEmailByToAddress($to);
-
-if (mailCheckResponse($res, $from, $to, $subject, $message)) {
-    echo "Found the email sent.\n";
-
-    $bccAddresses = getBccAddresses($res);
-    if (in_array($bcc, $bccAddresses, true)) {
-        echo "bcc is set.\n";
-    }
-
-    $headers = getHeaders($res);
-    if ($headers['X-Mailer'][0] === $xMailer) {
-        echo "The specified x-Mailer exists.";
-    }
-}
 foreach (['to' => $to, 'bcc' => $bcc] as $type => $mailAddress) {
     $mailBox = MailBox::login($mailAddress);
     $mail = $mailBox->getMailsBySubject($subject);
@@ -56,12 +41,13 @@ foreach (['to' => $to, 'bcc' => $bcc] as $type => $mailAddress) {
         echo "Found the email. {$recipient} received.\n";
     }
 
-    if (($mail->get('X-Mailer')[0] ?? null) === $xMailer) {
-        echo "The specified x-Mailer exists.";
+    if ($mail->get('X-Mailer') === $xMailer) {
+        echo "The specified x-Mailer exists.\n\n";
     }
 
     $mailBox->deleteMailsBySubject($subject);
     $mail = $mailBox->getMailsBySubject($subject);
+    $mailBox->logout();
     var_dump('after delete: '.count($mail));
 }
 ?>
@@ -72,6 +58,8 @@ foreach (['to' => $to, 'bcc' => $bcc] as $type => $mailAddress) {
 ?>
 --EXPECT--
 Email sent.
-Found the email sent.
-bcc is set.
+Found the email. to received.
+The specified x-Mailer exists.
+
+Found the email. bcc received.
 The specified x-Mailer exists.

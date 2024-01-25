@@ -232,8 +232,16 @@ class Mail
         return count($this->mailData);
     }
 
-    public function get(string $field, int $offset = 0): ?array
+    public function getHeader(string $field, bool $getAll = false, int $offset = 0)
     {
-        return $this->mailData[$offset][$field] ?? null;
+        if ($getAll) {
+            return $this->mailData[$offset][$field] ?? [];
+        }
+        return $this->mailData[$offset][$field][0] ?? null;
+    }
+
+    public function getBody(int $offset = 0): ?string
+    {
+        return $this->mailData[$offset]['Body'] ?? null;
     }
 }

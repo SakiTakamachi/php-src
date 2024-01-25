@@ -212,10 +212,10 @@ class Mail
     {
         return $this->mailData &&
             $this->count() === 1 &&
-            $this->extractEmailAddress($this->get('From')[0] ?? '') === $from &&
-            $this->extractEmailAddress($this->get('To')[0] ?? '') === $to &&
-            ($this->get('Subject')[0] ?? '') === $subject &&
-            trim($this->get('Body') ?? '') === trim($message);
+            $this->extractEmailAddress($this->getHeader('From')) === $from &&
+            $this->extractEmailAddress($this->getHeader('To')) === $to &&
+            $this->getHeader('Subject') === $subject &&
+            trim($this->getBody()) === trim($message);
     }
     private function extractEmailAddress(string $line): string
     {

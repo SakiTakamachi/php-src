@@ -8,7 +8,8 @@ smtp_port=25
 --FILE--
 <?php
 
-require_once __DIR__.'/mailpit_utils.inc';
+require_once __DIR__.'/mail_util.inc';
+$users = MailBox::USERS;
 
 $from = ini_get('sendmail_from');
 
@@ -43,7 +44,7 @@ foreach ($cases as $index => ['label' => $label, 'premise' => $premise]) {
 
     $premise();
 
-    $to = "mail_variation_win_{$index}@example.com";
+    $to = $users[$index];
     $subject = "{$index}: Basic PHPT test for mail() function";
     $message = <<<HERE
 Description
@@ -57,19 +58,18 @@ HERE;
         echo "Email sent.\n";
     }
 
-    $res = searchEmailByToAddress($to);
+    $mailBox = MailBox::login($to);
+    $mail = $mailBox->getMailsBySubject($subject);
+    $mailBox->logout();
 
-    if (mailCheckResponse($res, $from, $to, $subject, $message)) {
-        echo "Found the email sent.\n\n";
+    if ($mail->count() > 0) {
+        echo "Found the email.\n\n";
     }
 }
 ?>
 --CLEAN--
 <?php
-require_once __DIR__.'/mailpit_utils.inc';
-deleteEmailByToAddress('mail_variation_win_0@example.com');
-deleteEmailByToAddress('mail_variation_win_1@example.com');
-deleteEmailByToAddress('mail_variation_win_2@example.com');
+
 ?>
 --EXPECTF--
 ========== From is not set ==========

@@ -2,7 +2,6 @@
 Bug #80751 (Comma in recipient name breaks email delivery)
 --SKIPIF--
 <?php
-die('skip test');
 if (getenv("SKIP_SLOW_TESTS")) die('skip slow test');
 require_once __DIR__.'/mail_windows_skipif.inc';
 ?>
@@ -70,8 +69,7 @@ foreach (['to' => $to, 'cc' => $cc, 'bcc' => $bcc] as $type => $mailAddress) {
 ?>
 --CLEAN--
 <?php
-require_once __DIR__.'/mailpit_utils.inc';
-deleteEmailByToAddress('bug72964_to@example.com');
+
 ?>
 --EXPECT--
 Email sent.

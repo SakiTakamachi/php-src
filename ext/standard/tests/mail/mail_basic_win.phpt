@@ -1,14 +1,15 @@
 --TEST--
 Test mail() function : basic functionality (win)
 --SKIPIF--
-<?php die('skip test'); require_once __DIR__.'/mail_windows_skipif.inc'; ?>
+<?php require_once __DIR__.'/mail_windows_skipif.inc'; ?>
 --INI--
 SMTP=localhost
 smtp_port=25
 --FILE--
 <?php
 
-require_once __DIR__.'/mailpit_utils.inc';
+require_once __DIR__.'/mail_util.inc';
+$users = MailBox::USERS;
 
 $cases = [
     [
@@ -48,7 +49,7 @@ $cases = [
 foreach ($cases as $index => ['from' => $from, 'premise' => $premise]) {
     echo "========== Case {$index} ==========\n";
 
-    $to = "mail_basic_win_{$index}@example.com";
+    $to = $users[$index];
     $subject = "{$index}: Basic PHPT test for mail() function";
     $message = <<<HERE
 Description
@@ -64,36 +65,32 @@ HERE;
 
     echo "Email sent.\n";
 
-    $mailBox = getMailBox($to);
-    $res = getEmailsBySubject($mailBox, $subject);
-    fclose($mailBox);
+    $mailBox = MailBox::login($to);
+    $mail = $mailBox->getMailsBySubject($subject);
+    $mailBox->logout();
 
-    if (mailCheckResponse($res, $from, $to, $subject, $message)) {
-        echo "Found the email sent.\n\n";
+    if ($mail->isAsExpected($from, $to, $subject, $message)) {
+        echo "Found the email.\n\n";
     }
 }
 ?>
 --CLEAN--
 <?php
-require_once __DIR__.'/mailpit_utils.inc';
-deleteEmailsBySubject('mail_basic_win_0@example.com', '0: Basic PHPT test for mail() function');
-deleteEmailsBySubject('mail_basic_win_1@example.com', '1: Basic PHPT test for mail() function');
-deleteEmailsBySubject('mail_basic_win_2@example.com', '2: Basic PHPT test for mail() function');
-deleteEmailsBySubject('mail_basic_win_3@example.com', '3: Basic PHPT test for mail() function');
+
 ?>
 --EXPECT--
 ========== Case 0 ==========
 Email sent.
-Found the email sent.
+Found the email.
 
 ========== Case 1 ==========
 Email sent.
-Found the email sent.
+Found the email.
 
 ========== Case 2 ==========
 Email sent.
-Found the email sent.
+Found the email.
 
 ========== Case 3 ==========
 Email sent.
-Found the email sent.
+Found the email.

@@ -37,18 +37,18 @@ foreach (['to' => $to, 'bcc' => $bcc] as $type => $mailAddress) {
     $mailBox = MailBox::login($mailAddress);
     $mail = $mailBox->getMailsBySubject($subject);
 
-    if ($mail->isAsExpected($from, $to, $subject, $message)) {
-        echo "Found the email. {$recipient} received.\n";
-    }
-
-    if ($mail->get('X-Mailer') === $xMailer) {
-        echo "The specified x-Mailer exists.\n\n";
-    }
-
     $mailBox->deleteMailsBySubject($subject);
     $mail = $mailBox->getMailsBySubject($subject);
     $mailBox->logout();
     var_dump('after delete: '.$mail->count());
+
+    if ($mail->isAsExpected($from, $to, $subject, $message)) {
+        echo "Found the email. {$recipient} received.\n";
+    }
+
+    if ($mail->getHeader('X-Mailer') === $xMailer) {
+        echo "The specified x-Mailer exists.\n\n";
+    }
 }
 ?>
 --CLEAN--

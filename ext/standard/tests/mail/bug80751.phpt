@@ -39,8 +39,6 @@ if ($res !== true) {
 
 echo "Email sent.\n";
 
-$res = searchEmailByToAddress($to);
-
 foreach (['to' => $to, 'cc' => $cc, 'bcc' => $bcc] as $type => $mailAddress) {
     $mailBox = MailBox::login($mailAddress);
     $mail = $mailBox->getMailsBySubject($subject);

@@ -210,6 +210,7 @@ class MailCollection
 
     public function isAsExpected(string $from, string $to, string $subject, string $message): bool
     {
+        var_dump($this->mailData);
         return $this->mailData &&
             $this->count() === 1 &&
             $this->extractEmailAddress($this->getHeader('From')) === $from &&
@@ -217,9 +218,9 @@ class MailCollection
             $this->getHeader('Subject') === $subject &&
             trim($this->getBody()) === trim($message);
     }
-    private function extractEmailAddress(string $line): string
+    private function extractEmailAddress(?string $line): string
     {
-        $line = trim($line);
+        $line = trim($line ?? '');
         if (str_contains($line, '<')) {
             preg_match('/<(.+)>/is', $line, $matches);
             return $matches[1] ?? '';

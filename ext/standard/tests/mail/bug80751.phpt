@@ -48,19 +48,19 @@ foreach (['to' => $to, 'cc' => $cc, 'bcc' => $bcc] as $type => $mailAddress) {
         echo "Found the email. {$recipient} received.\n";
     }
 
-    if ($mail->get('ReturnPath') === $from) {
+    if ($mail->getHeader('ReturnPath') === $from) {
         echo "Return-Path is as expected.\n";
     }
 
-    if ($mail->get('To') === $toLine) {
+    if ($mail->getHeader('To') === $toLine) {
         echo "To header is as expected.\n";
     }
 
-    if ($mail->get('From') === $fromLine) {
+    if ($mail->getHeader('From') === $fromLine) {
         echo "From header is as expected.\n";
     }
 
-    if ($mail->get('Cc') === $ccLine) {
+    if ($mail->getHeader('Cc') === $ccLine) {
         echo "Cc header is as expected.\n\n";
     }
 }

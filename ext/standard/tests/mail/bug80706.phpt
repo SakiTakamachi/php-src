@@ -2,7 +2,6 @@
 Bug #80706 (Headers after Bcc headers may be ignored)
 --SKIPIF--
 <?php
-die('skip test');
 if (getenv("SKIP_SLOW_TESTS")) die('skip slow test');
 require_once __DIR__.'/mail_windows_skipif.inc';
 ?>
@@ -18,7 +17,7 @@ require_once __DIR__.'/mailpit_utils.inc';
 $to = 'bug80706_to@example.com';
 $from = ini_get('sendmail_from');
 $bcc = 'bug80706_bcc@example.com';
-$subject = bin2hex(random_bytes(16));
+$subject = 'mail_bug80706';
 $message = 'hello';
 $xMailer = 'bug80706_x_mailer';
 $headers = "From: {$from}\r\n"
@@ -48,11 +47,27 @@ if (mailCheckResponse($res, $from, $to, $subject, $message)) {
         echo "The specified x-Mailer exists.";
     }
 }
+foreach (['to' => $to, 'bcc' => $bcc] as $type => $mailAddress) {
+    $mailBox = MailBox::login($mailAddress);
+    $mail = $mailBox->getMailsBySubject($subject);
+
+    if ($mail->isAsExpected($from, $to, $subject, $message)) {
+        echo "Found the email. {$recipient} received.\n";
+    }
+
+    if (($mail->get('X-Mailer')[0] ?? null) === $xMailer) {
+        echo "The specified x-Mailer exists.";
+    }
+
+    $mailBox->deleteMailsBySubject($subject);
+    $mail = $mailBox->getMailsBySubject($subject);
+    var_dump('after delete: '.count($mail));
+}
 ?>
 --CLEAN--
 <?php
-require_once __DIR__.'/mailpit_utils.inc';
-deleteEmailByToAddress('bug72964_to@example.com');
+//require_once __DIR__.'/mailpit_utils.inc';
+//deleteEmailByToAddress('bug72964_to@example.com');
 ?>
 --EXPECT--
 Email sent.

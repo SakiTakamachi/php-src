@@ -108,6 +108,8 @@ class MailBox
     private const SEARCH = 'A00004';
     private const FETCH_HEADERS = 'A00005';
     private const FETCH_BODY = 'A00006';
+    private const DELETE = 'A00007';
+    private const EXPUNGE = 'A00008';
 
     private function __construct()
     {
@@ -132,7 +134,7 @@ class MailBox
         }
     }
 
-    public function getMailsBySubject(string $subject): array
+    private function getUidsBySubject(string $subject): array
     {
         $this->mailConnecter->send(self::SELECT_MAILBOX, 'SELECT "INBOX"');
         if (!$this->mailConnecter->isSuccess(self::SELECT_MAILBOX)) {
@@ -142,21 +144,20 @@ class MailBox
         $this->mailConnecter->send(self::SEARCH, "UID SEARCH SUBJECT \"{$subject}\"");
         $res = $this->mailConnecter->getResponse(self::SEARCH);
         preg_match('/SEARCH ([0-9 ]+)/is', $res, $matches);
-        $uids = explode(' ', $matches[1] ?? '');
+        return isset($matches[1]) ? explode(' ', trim($matches[1])) : [];
+    }
 
-        $mails = [];
-        foreach ($uids as $uid) {
-            if (!$uid) {
-                continue;
-            }
-            $mails[] = $this->getHeaders($uid) + ['Body' => $this->getBody($uid)];
-        }
-        return $mails;
+    public function getMailsBySubject(string $subject): array
+    {
+        return array_map(
+            fn($uid) => new Mail($this->getHeaders($uid) + ['Body' => $this->getBody($uid)]),
+            $this->getUidsBySubject($subject),
+        );
     }
 
     private function getHeaders(int $uid): array
     {
-        $this->mailConnecter->send(self::FETCH_HEADERS, "UID FETCH {$uid} (BODY[HEADER.FIELDS (SUBJECT FROM)])");
+        $this->mailConnecter->send(self::FETCH_HEADERS, "UID FETCH {$uid} (BODY[HEADER])");
         $res = $this->mailConnecter->getResponse(self::FETCH_HEADERS, true);
 
         $key = null;
@@ -188,6 +189,51 @@ class MailBox
     private function getBody(int $uid): string
     {
         $this->mailConnecter->send(self::FETCH_BODY, "UID FETCH {$uid} (BODY[TEXT])");
-        return $this->mailConnecter->getResponse(self::FETCH_BODY);
+        $body = $this->mailConnecter->getResponse(self::FETCH_BODY);
+        preg_match('/^\* 1 FETCH.+?\r\n (.+)\r\n\) \r\nA00006.+?$/is', $body, $matches);
+        return $matches[1] ?? '';
+    }
+
+    public function deleteMailsBySubject(string $subject): void
+    {
+        array_map(
+            fn($uid) => $this->mailConnecter->send(self::DELETE, "UID STORE {$uid} +FLAGS (\\Deleted)"),
+            $this->getUidsBySubject($subject),
+        );
+        $this->mailConnecter->send(self::EXPUNGE, 'EXPUNGE');
+    }
+}
+
+class Mail
+{
+    public function __construct(private ?array $mailData) {}
+
+    public function isAsExpected(string $from, string $to, string $subject, string $message): bool
+    {
+        return $this->mailData &&
+            $this->count() === 1 &&
+            $this->extractEmailAddress($this->get('From')[0] ?? '') === $from &&
+            $this->extractEmailAddress($this->get('To')[0] ?? '') === $to &&
+            ($this->get('Subject')[0] ?? '') === $subject &&
+            trim($this->get('Body') ?? '') === trim($message);
+    }
+    private function extractEmailAddress(string $line): string
+    {
+        $line = trim($line);
+        if (str_contains($line, '<')) {
+            preg_match('/<(.+)>/is', $line, $matches);
+            return $matches[1] ?? '';
+        }
+        return $line;
+    }
+
+    public function count(): int
+    {
+        return count($this->mailData);
+    }
+
+    public function get(string $field, int $offset = 0): ?array
+    {
+        return $this->mailData[$offset][$field] ?? null;
     }
 }

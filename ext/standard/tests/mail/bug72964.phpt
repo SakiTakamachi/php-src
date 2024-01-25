@@ -18,13 +18,13 @@ $users = MailBox::USERS;
 
 $to = $users[0];
 $from = ini_get('sendmail_from');
-$cc = [$users[0], $users[1]];
-$bcc = [$users[2], $users[3]];
+$cc = ['cc1' => $users[0], 'cc2' => $users[1]];
+$bcc = ['bcc1' => $users[2], 'bcc2' => $users[3]];
 $subject = 'mail_bug72964';
 $message = 'hello';
 $headers = "From: {$from}\r\n"
-    . "Cc: {$cc[0]},\r\n\t{$cc[1]}\r\n"
-    . "Bcc: {$bcc[0]},\r\n {$bcc[1]}\r\n";
+    . "Cc: {$cc['cc1']},\r\n\t{$cc['cc2']}\r\n"
+    . "Bcc: {$bcc['bcc1']},\r\n {$bcc['bcc2']}\r\n";
 
 $res = mail($to, $subject, $message, $headers);
 
@@ -34,22 +34,15 @@ if ($res !== true) {
 
 echo "Email sent.\n";
 
-foreach ([
-    'to' => [$to],
-    'cc' => $cc,
-    'bcc' => $bcc,
-] as $type => $mailAddresses) {
-    foreach ($mailAddresses as $mailAddress) {
+foreach ([['to' => $to], $cc, $bcc] as $mailAddresses) {
+    foreach ($mailAddresses as $recipient => $mailAddress) {
         $mailBox = MailBox::login($mailAddress);
-        $res = $mailBox->getMailsBySubject($subject);
+        $mail = $mailBox->getMailsBySubject($subject);
         $mailBox->logout();
-        var_dump($res);
 
-        /*
-        if (mailCheckResponse($res, $from, $to, $subject, $message)) {
-            echo "Found the email. {$type} received.\n";
+        if ($mail->isAsExpected($from, $to, $subject, $message)) {
+            echo "Found the email. {$recipient} received.\n";
         }
-        */
     }
 }
 ?>
@@ -65,7 +58,7 @@ foreach (IMAP_USERS as $emailAddress) {
 --EXPECT--
 Email sent.
 Found the email. to received.
-Found the email. cc received.
-Found the email. cc received.
-Found the email. bcc received.
-Found the email. bcc received.
+Found the email. cc1 received.
+Found the email. cc2 received.
+Found the email. bcc1 received.
+Found the email. bcc2 received.

@@ -111,10 +111,12 @@ function getBody($mailBox, $uid): string
 
     $first = false;
     while ($outputLine = fgets($mailBox)) {
+        /*
         if (!$first) {
             $first = true;
             continue;
         }
+        */
         $body .= $outputLine;
     }
     var_dump('get body: '.microtime(true) - $start);

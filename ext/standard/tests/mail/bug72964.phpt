@@ -38,8 +38,8 @@ echo "Email sent.\n";
 
 foreach ([
     'to' => [$to],
-    'cc' => $cc,
-    'bcc' => $bcc,
+    //'cc' => $cc,
+    //'bcc' => $bcc,
 ] as $type => $emailAddresses) {
     foreach ($emailAddresses as $emailAddress) {
         $mailBox = getMailBox($emailAddress);

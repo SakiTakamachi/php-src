@@ -30,13 +30,35 @@ PHP 8.4 INTERNALS UPGRADE NOTES
   int(*)(zend_object_iterator *) to zend_result(*)(zend_object_iterator *) to
   be more in line with what callbacks are returning.
 
+* The backwards compatibility headers ext/standard/{php_lcg.h,php_mt_rand.h,
+  php_rand.h,php_random.h} have been removed. Include ext/random/php_random.h
+  directly.
+
 ========================
 2. Build system changes
 ========================
 
- a. Unix build system changes
+ a. Abstract
+   - SIZEOF_SHORT symbol removed (size of 2 on 32-bit and 64-bit platforms).
+   - DBA_CDB_MAKE symbol removed in ext/dba.
+   - The configure option --with-mhash emits deprecation warning.
+   - The configure option --with-pspell has been removed.
+
+ b. Unix build system changes
    - The configure option --with-zlib-dir has been removed.
-   - Symbol COOKIE_IO_FUNCTIONS_T has been removed (use cookie_io_functions_t).
+   - COOKIE_IO_FUNCTIONS_T symbol has been removed (use cookie_io_functions_t).
+   - HAVE_SOCKADDR_UN_SUN_LEN symbol renamed to HAVE_STRUCT_SOCKADDR_UN_SUN_LEN.
+   - PHP_CHECK_IN_ADDR_T M4 macro and 'in_addr_t' fallback definition to 'u_int'
+     removed (use AC_CHECK_TYPES Autoconf macro instead).
+   - HAVE_ODBC2 symbol has been removed in ext/odbc.
+   - Removed linking with obsolete dnet_stub library in ext/pdo_dblib.
+   - Removed checking and linking with obsolete libbind for some functions.
+
+ c. Windows build system changes
+   - Added Bison flag '-Wall' when generating lexer files as done in *nix build
+     system.
+   - HAVE_WIN32_NATIVE_THREAD, USE_WIN32_NATIVE_THREAD, ENABLE_THREADS symbols
+     in ext/mbstring/libmbfl removed.
 
 ========================
 3. Module changes
@@ -46,6 +68,8 @@ PHP 8.4 INTERNALS UPGRADE NOTES
    - dom_read_t and dom_write_t now expect the function to return zend_result
      instead of int.
    - The macros DOM_NO_ARGS() and DOM_NOT_IMPLEMENTED() have been removed.
+   - New public APIs are available to handle callbacks from XPath, see
+     xpath_callbacks.h.
 
  b. ext/random
    - The macro RAND_RANGE_BADSCALING() has been removed. The implementation

@@ -272,7 +272,7 @@ static zend_never_inline ZEND_COLD zval* zval_undefined_cv(uint32_t var EXECUTE_
 {
 	if (EXPECTED(EG(exception) == NULL)) {
 		zend_string *cv = CV_DEF_OF(EX_VAR_TO_NUM(var));
-		zend_error(E_WARNING, "Undefined variable $%s", ZSTR_VAL(cv));
+		zend_error_unchecked(E_WARNING, "Undefined variable $%S", cv);
 	}
 	return &EG(uninitialized_zval);
 }
@@ -1411,8 +1411,8 @@ ZEND_API ZEND_COLD void zend_verify_never_error(const zend_function *zf)
 {
 	zend_string *func_name = get_function_or_method_name(zf);
 
-	zend_type_error("%s(): never-returning function must not implicitly return",
-		ZSTR_VAL(func_name));
+	zend_type_error("%s(): never-returning %s must not implicitly return",
+		ZSTR_VAL(func_name), zf->common.scope ? "method" : "function");
 
 	zend_string_release(func_name);
 }
@@ -3788,7 +3788,7 @@ static zend_never_inline void zend_fetch_this_var(int type OPLINE_DC EXECUTE_DAT
 				Z_ADDREF_P(result);
 			} else {
 				ZVAL_NULL(result);
-				zend_error(E_WARNING, "Undefined variable $this");
+				zend_error_unchecked(E_WARNING, "Undefined variable $this");
 			}
 			break;
 		case BP_VAR_IS:
@@ -4639,6 +4639,16 @@ static void zend_swap_operands(zend_op *op) /* {{{ */
 	op->op1_type = op->op2_type;
 	op->op2      = tmp;
 	op->op2_type = tmp_type;
+
+#ifdef ZEND_VERIFY_TYPE_INFERENCE
+	uint32_t tmp_info;
+	tmp_info = op->op1_use_type;
+	op->op1_use_type = op->op2_use_type;
+	op->op2_use_type = tmp_info;
+	tmp_info = op->op1_def_type;
+	op->op1_def_type = op->op2_def_type;
+	op->op2_def_type = tmp_info;
+#endif
 }
 /* }}} */
 #endif
@@ -5301,6 +5311,8 @@ static zend_always_inline zend_execute_data *_zend_vm_stack_push_call_frame(uint
 # include "zend_vm_trace_lines.h"
 #elif defined(ZEND_VM_TRACE_MAP)
 # include "zend_vm_trace_map.h"
+#elif defined(ZEND_VERIFY_TYPE_INFERENCE)
+# include "zend_verify_type_inference.h"
 #endif
 
 #define ZEND_VM_NEXT_OPCODE_EX(check_exception, skip) \

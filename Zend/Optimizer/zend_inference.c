@@ -3157,7 +3157,7 @@ static zend_always_inline zend_result _zend_update_type_info(
 			}
 			break;
 		case ZEND_ASSIGN_OBJ_REF:
-			if (opline->op1_type == IS_CV) {
+			if (opline->op1_type == IS_CV && ssa_op->op1_def >= 0) {
 				tmp = t1;
 				if (tmp & MAY_BE_OBJECT) {
 					tmp |= MAY_BE_RC1 | MAY_BE_RCN;
@@ -5130,9 +5130,9 @@ ZEND_API bool zend_may_throw_ex(const zend_op *opline, const zend_ssa_op *ssa_op
 		case ZEND_FETCH_IS:
 			return (t2 & (MAY_BE_ARRAY|MAY_BE_OBJECT));
 		case ZEND_ISSET_ISEMPTY_DIM_OBJ:
-			return (t1 & MAY_BE_OBJECT) || (t2 & (MAY_BE_ARRAY|MAY_BE_OBJECT));
+			return (t1 & MAY_BE_OBJECT) || (t2 & (MAY_BE_DOUBLE|MAY_BE_ARRAY|MAY_BE_OBJECT));
 		case ZEND_FETCH_DIM_IS:
-			return (t1 & MAY_BE_OBJECT) || (t2 & (MAY_BE_ARRAY|MAY_BE_OBJECT|MAY_BE_RESOURCE));
+			return (t1 & MAY_BE_OBJECT) || (t2 & (MAY_BE_DOUBLE|MAY_BE_ARRAY|MAY_BE_OBJECT|MAY_BE_RESOURCE));
 		case ZEND_CAST:
 			switch (opline->extended_value) {
 				case IS_LONG:

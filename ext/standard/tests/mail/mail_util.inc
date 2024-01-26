@@ -183,9 +183,8 @@ class MailBox
     {
         $this->mailConnecter->send(self::FETCH_BODY, "UID FETCH {$uid} (BODY[TEXT])");
         $body = $this->mailConnecter->getResponse(self::FETCH_BODY, true);
-        var_dump($body);
         $count = count($body);
-        if ($count <= 4) {
+        if ($count <= 3) {
             return '';
         }
 

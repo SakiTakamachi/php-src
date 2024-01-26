@@ -188,7 +188,7 @@ class MailBox
             return '';
         }
 
-        return implode(PHP_EOL, array_slice($body, 1, $count - 3));
+        return implode('', array_slice($body, 1, $count - 3));
     }
 
     public function deleteMailsBySubject(string $subject): void

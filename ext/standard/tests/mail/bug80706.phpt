@@ -33,7 +33,7 @@ if ($res !== true) {
 
 echo "Email sent.\n";
 
-foreach (['to' => $to, 'bcc' => $bcc] as $type => $mailAddress) {
+foreach (['to' => $to, 'bcc' => $bcc] as $recipient => $mailAddress) {
     $mailBox = MailBox::login($mailAddress);
     $mail = $mailBox->getMailsBySubject($subject);
     $mailBox->logout();

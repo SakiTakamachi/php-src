@@ -179,12 +179,8 @@ class MailBox
             }
 
             $vals = explode(',', $val);
-            foreach ($vals as $v) {
-                $trimV = trim($v);
-                if (!$trimV) {
-                    continue;
-                }
-                $headers[$key][] = $trimV;
+            foreach ($vals as $val) {
+                $headers[$key][] = trim($val);
             }
         }
         return $headers;
@@ -219,12 +215,35 @@ class MailCollection
     public function isAsExpected(string $from, string $to, string $subject, string $message): bool
     {
         var_dump($this->getBody());
-        return $this->mailData &&
-            $this->count() === 1 &&
-            $this->extractEmailAddress($this->getHeader('From'), true) === $from &&
-            $this->extractEmailAddress($this->getHeader('To'), true) === $to &&
-            $this->getHeader('Subject', true) === $subject &&
-            trim($this->getBody()) === trim($message);
+        
+        $result = true;
+        
+        if (!$this->mailData) {
+            $result = false;
+            echo "Email data does not exist.\n";
+        }
+        if (!$this->count() > 1) {
+            $result = false;
+            echo "Multiple email data exist.\n";
+        }
+        if ($this->extractEmailAddress($this->getHeader('From'), true) !== $from) {
+            $result = false;
+            echo "from does not match.\n";
+        }
+        if ($this->extractEmailAddress($this->getHeader('To'), true) !== $to) {
+            $result = false;
+            echo "to does not match.\n";
+        }
+        if ($this->getHeader('Subject', true) !== $subject) {
+            $result = false;
+            echo "subject does not match.\n";
+        }
+        if (trim($this->getBody()) !== trim($message)) {
+            $result = false;
+            echo "body does not match.\n";
+        }
+        
+        return $result;
     }
 
     private function extractEmailAddress(?string $line): string

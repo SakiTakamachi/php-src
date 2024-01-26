@@ -169,12 +169,12 @@ class MailBox
             $items = explode(':', $line);
             preg_match('/^(.+?):(.+?)$/', $line, $matches);
             $key = trim($matches[1] ?? '');
-            $value = trim($matches[2] ?? '');
+            $val = trim($matches[2] ?? '');
             if (!$key || !$val || $val === self::FETCH_HEADERS.' OK UID completed' || $val === ')') {
                 continue;
             }
 
-            $headers[$key] = $value;
+            $headers[$key] = $val;
         }
         return $headers;
     }

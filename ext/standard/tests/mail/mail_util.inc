@@ -179,8 +179,12 @@ class MailBox
             }
 
             $vals = explode(',', $val);
-            foreach ($vals as $val) {
-                $headers[$key][] = trim($val);
+            foreach ($vals as $v) {
+                $tv = trim($v);
+                if (!$tv) {
+                    continue;
+                }
+                $headers[$key][] = $tv;
             }
         }
         return $headers;

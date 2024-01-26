@@ -218,11 +218,11 @@ class MailCollection
             $result = false;
             echo "Multiple email data exist.\n";
         }
-        if ($this->extractEmailAddress($this->getHeader('From'), true) !== $from) {
+        if ($this->getHeader('From', true) !== $from) {
             $result = false;
             echo "from does not match.\n";
         }
-        if ($this->extractEmailAddress($this->getHeader('To'), true) !== $to) {
+        if ($this->getHeader('To', true) !== $to) {
             $result = false;
             echo "to does not match.\n";
         }

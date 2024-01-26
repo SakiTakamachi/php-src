@@ -160,32 +160,21 @@ class MailBox
         $this->mailConnecter->send(self::FETCH_HEADERS, "UID FETCH {$uid} (BODY[HEADER])");
         $res = $this->mailConnecter->getResponse(self::FETCH_HEADERS, true);
 
-        $key = null;
+        $headers = [];
         foreach ($res as $line) {
             $line = trim($line);
             if (!$line) {
                 continue;
             }
             $items = explode(':', $line);
-            if (count($items) > 1) {
-                $key = trim($items[0]);
-                $val = trim($items[1]);
-                $headers[$key] = [];
-            } else {
-                $val = trim($items[0]);
-                if (!$key || $val === self::FETCH_HEADERS.' OK UID completed' || $val === ')') {
-                    continue;
-                }
+            preg_match('/^(.+?):(.+?)$/', $line, $matches);
+            $key = trim($matches[1] ?? '');
+            $value = trim($matches[2] ?? '');
+            if (!$key || !$val || $val === self::FETCH_HEADERS.' OK UID completed' || $val === ')') {
+                continue;
             }
 
-            $vals = explode(',', $val);
-            foreach ($vals as $v) {
-                $tv = trim($v);
-                if (!$tv) {
-                    continue;
-                }
-                $headers[$key][] = $tv;
-            }
+            $headers[$key] = $value;
         }
         return $headers;
     }
@@ -194,6 +183,7 @@ class MailBox
     {
         $this->mailConnecter->send(self::FETCH_BODY, "UID FETCH {$uid} (BODY[TEXT])");
         $body = $this->mailConnecter->getResponse(self::FETCH_BODY, true);
+        var_dump($body);
         $count = count($body);
         if ($count <= 4) {
             return '';
@@ -218,10 +208,8 @@ class MailCollection
 
     public function isAsExpected(string $from, string $to, string $subject, string $message): bool
     {
-        var_dump($this->getBody());
-        
         $result = true;
-        
+
         if (!$this->mailData) {
             $result = false;
             echo "Email data does not exist.\n";
@@ -246,18 +234,8 @@ class MailCollection
             $result = false;
             echo "body does not match.\n";
         }
-        
-        return $result;
-    }
 
-    private function extractEmailAddress(?string $line): string
-    {
-        $line = trim($line ?? '');
-        if (str_contains($line, '<')) {
-            preg_match('/<(.+)>/is', $line, $matches);
-            return $matches[1] ?? '';
-        }
-        return $line;
+        return $result;
     }
 
     public function count(): int
@@ -265,7 +243,7 @@ class MailCollection
         return count($this->mailData);
     }
 
-    public function getHeader(string $field, bool $ignoreCases = false, bool $getAll = false, int $offset = 0)
+    public function getHeader(string $field, bool $ignoreCases = false, int $offset = 0)
     {
         if ($ignoreCases) {
             $mail =  array_change_key_case($this->mailData[$offset] ?? []);
@@ -274,10 +252,7 @@ class MailCollection
             $mail = $this->mailData[$offset] ?? [];
         }
 
-        if ($getAll) {
-            return $mail[$field] ?? [];
-        }
-        return $mail[$field][0] ?? null;
+        return $mail[$field] ?? null;
     }
 
     public function getBody(int $offset = 0): ?string

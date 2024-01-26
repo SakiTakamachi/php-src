@@ -44,11 +44,11 @@ foreach (['to' => $to, 'cc' => $cc, 'bcc' => $bcc] as $type => $mailAddress) {
     $mail = $mailBox->getMailsBySubject($subject);
     $mailBox->logout();
 
-    if ($mail->isAsExpected($from, $to, $subject, $message)) {
+    if ($mail->isAsExpected($fromLine, $toLine, $subject, $message)) {
         echo "Found the email. {$recipient} received.\n";
     }
 
-    if ($mail->getHeader('ReturnPath') === $from) {
+    if ($mail->getHeader('Return-Path') === $from) {
         echo "Return-Path is as expected.\n";
     }
 

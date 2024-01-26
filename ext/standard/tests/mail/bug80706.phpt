@@ -36,11 +36,7 @@ echo "Email sent.\n";
 foreach (['to' => $to, 'bcc' => $bcc] as $type => $mailAddress) {
     $mailBox = MailBox::login($mailAddress);
     $mail = $mailBox->getMailsBySubject($subject);
-
-    $mailBox->deleteMailsBySubject($subject);
-    $mail = $mailBox->getMailsBySubject($subject);
     $mailBox->logout();
-    var_dump('after delete: '.$mail->count());
 
     if ($mail->isAsExpected($from, $to, $subject, $message)) {
         echo "Found the email. {$recipient} received.\n";
@@ -53,8 +49,13 @@ foreach (['to' => $to, 'bcc' => $bcc] as $type => $mailAddress) {
 ?>
 --CLEAN--
 <?php
-//require_once __DIR__.'/mailpit_utils.inc';
-//deleteEmailByToAddress('bug72964_to@example.com');
+require_once __DIR__.'/mail_util.inc';
+$subject = 'mail_bug80706';
+foreach ([MailBox::USERS[0], MailBox::USERS[2]] as $mailAddress) {
+    $mailBox = MailBox::login($mailAddress);
+    $mailBox->deleteMailsBySubject($subject);
+    $mailBox->logout();
+}
 ?>
 --EXPECT--
 Email sent.

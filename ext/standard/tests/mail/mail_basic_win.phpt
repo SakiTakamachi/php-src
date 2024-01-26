@@ -76,7 +76,13 @@ HERE;
 ?>
 --CLEAN--
 <?php
-
+require_once __DIR__.'/mail_util.inc';
+for ($i = 0; $i <= 3; $i++) {
+    $subject = "{$i}: Basic PHPT test for mail() function";
+    $mailBox = MailBox::login(MailBox::USERS[$i]);
+    $mailBox->deleteMailsBySubject($subject);
+    $mailBox->logout();
+}
 ?>
 --EXPECT--
 ========== Case 0 ==========

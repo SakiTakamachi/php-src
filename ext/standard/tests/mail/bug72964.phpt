@@ -47,12 +47,13 @@ foreach ([['to' => $to], $cc, $bcc] as $mailAddresses) {
 ?>
 --CLEAN--
 <?php
-require_once __DIR__.'/mailpit_utils.inc';
-/*
-foreach (IMAP_USERS as $emailAddress) {
-    deleteEmailsBySubject($emailAddress, 'mail_bug72964');
+require_once __DIR__.'/mail_util.inc';
+$subject = 'mail_bug72964';
+foreach (MailBox::USERS as $mailAddress) {
+    $mailBox = MailBox::login($mailAddress);
+    $mailBox->deleteMailsBySubject($subject);
+    $mailBox->logout();
 }
-*/
 ?>
 --EXPECT--
 Email sent.

@@ -67,7 +67,13 @@ foreach (['to' => $to, 'cc' => $cc, 'bcc' => $bcc] as $type => $mailAddress) {
 ?>
 --CLEAN--
 <?php
-
+require_once __DIR__.'/mail_util.inc';
+$subject = 'mail_bug80751';
+foreach ([MailBox::USERS[0], MailBox::USERS[1], MailBox::USERS[2]] as $mailAddress) {
+    $mailBox = MailBox::login($mailAddress);
+    $mailBox->deleteMailsBySubject($subject);
+    $mailBox->logout();
+}
 ?>
 --EXPECT--
 Email sent.

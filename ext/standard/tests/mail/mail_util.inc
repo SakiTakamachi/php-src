@@ -150,7 +150,7 @@ class MailBox
     public function getMailsBySubject(string $subject): MailCollection
     {
         return new MailCollection(array_map(
-            fn($uid) => $this->getHeaders($uid) + ['body' => $this->getBody($uid)],
+            fn($uid) => $this->getHeaders($uid) + ['Body' => $this->getBody($uid)],
             $this->getUidsBySubject($subject),
         ));
     }
@@ -169,7 +169,7 @@ class MailBox
             $items = explode(':', $line);
             if (count($items) > 1) {
                 $key = trim($items[0]);
-                $val = strtolower(trim($items[1]));
+                $val = trim($items[1]);
                 $headers[$key] = [];
             } else {
                 $val = trim($items[0]);
@@ -190,13 +190,12 @@ class MailBox
     {
         $this->mailConnecter->send(self::FETCH_BODY, "UID FETCH {$uid} (BODY[TEXT])");
         $body = $this->mailConnecter->getResponse(self::FETCH_BODY, true);
-        var_dump($body);
         $count = count($body);
-        if ($count <= 5) {
+        if ($count <= 4) {
             return '';
         }
 
-        return implode("\r\n", array_slice($body, 1, $count - 5));
+        return implode("\r\n", array_slice($body, 1, $count - 3));
     }
 
     public function deleteMailsBySubject(string $subject): void
@@ -215,14 +214,14 @@ class MailCollection
 
     public function isAsExpected(string $from, string $to, string $subject, string $message): bool
     {
-        var_dump($this->mailData);
         return $this->mailData &&
             $this->count() === 1 &&
-            $this->extractEmailAddress($this->getHeader('From')) === $from &&
-            $this->extractEmailAddress($this->getHeader('To')) === $to &&
-            $this->getHeader('Subject') === $subject &&
+            $this->extractEmailAddress($this->getHeader('From'), true) === $from &&
+            $this->extractEmailAddress($this->getHeader('To'), true) === $to &&
+            $this->getHeader('Subject', true) === $subject &&
             trim($this->getBody()) === trim($message);
     }
+
     private function extractEmailAddress(?string $line): string
     {
         $line = trim($line ?? '');
@@ -238,16 +237,23 @@ class MailCollection
         return count($this->mailData);
     }
 
-    public function getHeader(string $field, bool $getAll = false, int $offset = 0)
+    public function getHeader(string $field, bool $ignoreCases = false, bool $getAll = false, int $offset = 0)
     {
-        if ($getAll) {
-            return $this->mailData[$offset][$field] ?? [];
+        if ($ignoreCases) {
+            $mail =  array_change_key_case($this->mailData[$offset] ?? []);
+            $field = strtolower($field);
+        } else {
+            $mail = $this->mailData[$offset] ?? [];
         }
-        return $this->mailData[$offset][$field][0] ?? null;
+
+        if ($getAll) {
+            return $mail[$field] ?? [];
+        }
+        return $mail[$field][0] ?? null;
     }
 
     public function getBody(int $offset = 0): ?string
     {
-        return $this->mailData[$offset]['body'] ?? null;
+        return $this->mailData[$offset]['Body'] ?? null;
     }
 }

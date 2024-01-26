@@ -214,6 +214,7 @@ class MailCollection
 
     public function isAsExpected(string $from, string $to, string $subject, string $message): bool
     {
+        var_dump($this->getBody());
         return $this->mailData &&
             $this->count() === 1 &&
             $this->extractEmailAddress($this->getHeader('From'), true) === $from &&

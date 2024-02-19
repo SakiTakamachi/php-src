@@ -145,7 +145,7 @@ jobs:
       - name: Verify generated files are up to date
         if: ${{ !matrix.asan }}
         uses: ./.github/actions/verify-generated-files
-  MACOS_DEBUG_NTS:
+  MACOS_RELEASE_ZTS:
     if: github.repository_owner == 'php' || github.event_name == 'pull_request'
     strategy:
       fail-fast: false
@@ -153,9 +153,7 @@ jobs:
         include:
           - os: 13
             arch: X64
-          - os: 14
-            arch: ARM64
-    name: MACOS_${{ matrix.arch }}_DEBUG_NTS
+    name: MACOS_${{ matrix.arch }}_RELEASE_ZTS
     runs-on: macos-${{ matrix.os }}
     steps:
       - name: git checkout
@@ -170,13 +168,17 @@ jobs:
       - name: ./configure
         uses: ./.github/actions/configure-macos
         with:
-          configurationParameters: --enable-debug --disable-zts
+          configurationParameters: --disable-debug --enable-zts
       - name: make
         run: |-
           export PATH="$(brew --prefix)/opt/bison/bin:$PATH"
           make -j$(sysctl -n hw.logicalcpu) >/dev/null
       - name: make install
         run: sudo make install
+      - name: Test
+        uses: ./.github/actions/test-macos
+        with:
+          testArtifacts: master_X64_RELEASE_ZTS
       - name: Test Tracing JIT
         uses: ./.github/actions/test-macos
         with:

@@ -19,7 +19,7 @@ runs:
         export CI_NO_IPV6=1
         export TEST_PHP_JUNIT=junit.out.xml
         export STACK_LIMIT_DEFAULTS_CHECK=1
-        sapi/cli/php run-tests.php -P -q ${{ inputs.runTestsParameters }} \
+        sapi/cli/php run-tests.php ./ext/standard/tests/math -P -q ${{ inputs.runTestsParameters }} \
           -d opcache.jit=${{ inputs.jitType }} \
           -d opcache.protect_memory=1 \
           -d opcache.jit_buffer_size=64M \

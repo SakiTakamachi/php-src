@@ -61,6 +61,8 @@ jobs:
         with:
           key: "${{github.job}}-X64-${{hashFiles('main/php_version.h')}}"
           append-timestamp: false
+      - name: clang version
+        run: clang --version
       - name: ./configure
         uses: ./.github/actions/configure-macos
         with:

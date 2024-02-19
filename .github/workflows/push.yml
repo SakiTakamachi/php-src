@@ -61,14 +61,14 @@ jobs:
         with:
           key: "${{github.job}}-X64-${{hashFiles('main/php_version.h')}}"
           append-timestamp: false
-      - name: clang version
-        run: clang --version
       - name: ./configure
         uses: ./.github/actions/configure-macos
         with:
           configurationParameters: >-
             --${{ matrix.debug && 'enable' || 'disable' }}-debug
             --${{ matrix.zts && 'enable' || 'disable' }}-zts
+      - name: clang version
+        run: clang --version
       - name: make
         run: |-
           export PATH="$(brew --prefix)/opt/bison/bin:$PATH"

@@ -10,7 +10,6 @@ runs:
       run: |
         set -x
         BREW_OPT="$(brew --prefix)"/opt
-        export CC="$(brew --prefix llvm@15)/bin/clang"
         export PATH="$BREW_OPT/bison/bin:$PATH"
         export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$BREW_OPT/openssl@1.1/lib/pkgconfig"
         export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$BREW_OPT/curl/lib/pkgconfig"
@@ -22,5 +21,6 @@ runs:
         export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$BREW_OPT/icu4c/lib/pkgconfig"
         ./buildconf --force
         ./configure \
+          CC="$(brew --prefix llvm@15)/bin/clang" \
           --with-iconv="$BREW_OPT"/libiconv \
           ${{ inputs.configurationParameters }}

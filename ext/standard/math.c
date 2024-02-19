@@ -189,12 +189,15 @@ PHPAPI double _php_math_round(double value, int places, int mode) {
 	 * floor(0.285 * 10000000000) => 2850000000
 	 */
 	cpu_round_mode = fegetround();
+	volatile double adjusted_value;
 	if (value >= 0.0) {
 		fesetround(FE_UPWARD);
-		tmp_value = floor(places > 0  ? value * exponent : value / exponent);
+		adjusted_value = places > 0  ? value * exponent : value / exponent;
+		tmp_value = floor(adjusted_value);
 	} else {
 		fesetround(FE_DOWNWARD);
-		tmp_value = ceil(places > 0  ? value * exponent : value / exponent);
+		adjusted_value = places > 0  ? value * exponent : value / exponent;
+		tmp_value = ceil(adjusted_value);
 	}
 	fesetround(cpu_round_mode);
 

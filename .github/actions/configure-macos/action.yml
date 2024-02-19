@@ -21,6 +21,5 @@ runs:
         export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$BREW_OPT/icu4c/lib/pkgconfig"
         ./buildconf --force
         ./configure \
-          CC="$(brew --prefix llvm@15)/bin/clang" \
           --with-iconv="$BREW_OPT"/libiconv \
           ${{ inputs.configurationParameters }}

@@ -157,11 +157,6 @@ static inline double php_round_helper(double integral, double value, double expo
 }
 /* }}} */
 
-static double round_floor(double value, int places, double exponent){
-		double adjusted_value = places > 0  ? value * exponent : value / exponent;
-		return floor(adjusted_value);
-}
-
 /* {{{ _php_math_round */
 /*
  * Rounds a number to a certain number of decimal places in a certain rounding
@@ -194,14 +189,12 @@ PHPAPI double _php_math_round(double value, int places, int mode) {
 	 * floor(0.285 * 10000000000) => 2850000000
 	 */
 	cpu_round_mode = fegetround();
-	volatile double adjusted_value;
 	if (value >= 0.0) {
 		fesetround(FE_UPWARD);
-		tmp_value = round_floor(value, places, exponent);
+		tmp_value = floor(adjusted_value = places > 0  ? value * exponent : value / exponent);
 	} else {
 		fesetround(FE_DOWNWARD);
-		adjusted_value = places > 0  ? value * exponent : value / exponent;
-		tmp_value = ceil(adjusted_value);
+		tmp_value = ceil(places > 0  ? value * exponent : value / exponent);
 	}
 	fesetround(cpu_round_mode);
 

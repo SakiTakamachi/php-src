@@ -75,7 +75,7 @@ jobs:
         run: objdump ./ext/standard/math.o -S > math.dump
       - uses: actions/upload-artifact@v4
         with:
-          name: math.dump
+          name: ${{ github.job }}_math.dump
           path: ${{ github.workspace }}/math.dump
           retention-days: 5
       - name: make install

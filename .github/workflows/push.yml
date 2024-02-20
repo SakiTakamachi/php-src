@@ -75,7 +75,7 @@ jobs:
         run: objdump ./ext/standard/math.o -S > math.dump
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.job }}_math.dump
+          name: ${{ github.job }}_${{ matrix.branch.name }}_X64_${{ matrix.debug && 'DEBUG' || 'RELEASE' }}_${{ matrix.zts && 'ZTS' || 'NTS' }}_math.dump
           path: ${{ github.workspace }}/math.dump
           retention-days: 5
       - name: make install

@@ -157,8 +157,6 @@ static inline double php_round_helper(double integral, double value, double expo
 }
 /* }}} */
 
-static double
-
 /* {{{ _php_math_round */
 /*
  * Rounds a number to a certain number of decimal places in a certain rounding

@@ -157,6 +157,8 @@ static inline double php_round_helper(double integral, double value, double expo
 }
 /* }}} */
 
+static double
+
 /* {{{ _php_math_round */
 /*
  * Rounds a number to a certain number of decimal places in a certain rounding
@@ -164,7 +166,7 @@ static inline double php_round_helper(double integral, double value, double expo
  */
 PHPAPI double _php_math_round(double value, int places, int mode) {
 	double exponent;
-	double tmp_value;
+	double tmp_value, adjusted_value;
 	int cpu_round_mode;
 
 	if (!zend_finite(value) || value == 0.0) {
@@ -191,10 +193,16 @@ PHPAPI double _php_math_round(double value, int places, int mode) {
 	cpu_round_mode = fegetround();
 	if (value >= 0.0) {
 		fesetround(FE_UPWARD);
-		tmp_value = floor(places > 0  ? value * exponent : value / exponent);
 	} else {
 		fesetround(FE_DOWNWARD);
-		tmp_value = ceil(places > 0  ? value * exponent : value / exponent);
+	}
+
+	adjusted_value = places > 0  ? value * exponent : value / exponent;
+
+	if (value >= 0.0) {
+		tmp_value = floor(adjusted_value);
+	} else {
+		tmp_value = ceil(adjusted_value);
 	}
 	fesetround(cpu_round_mode);
 

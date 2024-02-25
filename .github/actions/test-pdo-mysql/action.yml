@@ -1,4 +1,4 @@
-name: Test libmysqlclient
+name: Test pdo_mysql
 inputs:
   withMysqli:
     required: true

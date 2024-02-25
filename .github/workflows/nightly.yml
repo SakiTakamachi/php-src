@@ -742,7 +742,7 @@ jobs:
           libmysql: mysql-8.0.35-linux-glibc2.28-x86_64.tar.xz
           withMysqli: ${{ matrix.branch.ref == 'PHP-8.1' }}
       - name: Test mysql-8.0
-        uses: ./.github/actions/test-libmysqlclient
+        uses: ./.github/actions/test-pdo-mysql
         with:
           withMysqli: ${{ matrix.branch.ref == 'PHP-8.1' }}
       - name: Build mysql-8.2
@@ -752,9 +752,60 @@ jobs:
           libmysql: mysql-8.2.0-linux-glibc2.28-x86_64.tar.xz
           withMysqli: ${{ matrix.branch.ref == 'PHP-8.1' }}
       - name: Test mysql-8.2
-        uses: ./.github/actions/test-libmysqlclient
+        uses: ./.github/actions/test-pdo-mysql
         with:
           withMysqli: ${{ matrix.branch.ref == 'PHP-8.1' }}
+      - name: Verify generated files are up to date
+        uses: ./.github/actions/verify-generated-files
+      - name: Notify Slack
+        if: failure()
+        uses: ./.github/actions/notify-slack
+        with:
+          token: ${{ secrets.ACTION_MONITORING_SLACK }}
+  MariaDB:
+    needs: GENERATE_MATRIX
+    if: ${{ needs.GENERATE_MATRIX.outputs.branches != '[]' && matrix.branch.ref != 'PHP-8.1' }}
+    services:
+      maria_db:
+        image: quay.io/mariadb-foundation/mariadb-devel:latest
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_DATABASE: test
+          MYSQL_ROOT_PASSWORD: root
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJson(needs.GENERATE_MATRIX.outputs.branches) }}
+    name: "${{ matrix.branch.name }}_MariaDB"
+    runs-on: ubuntu-${{ matrix.branch.version.minor >= 3 && '22.04' || '20.04' }}
+    env:
+      IS_MARIADB_TEST: true
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.branch.ref }}
+      - name: apt
+        run: |
+          sudo apt-get update -y | true
+          sudo apt install bison re2c
+      - name: Setup
+        run: |
+          ./buildconf --force
+          ./configure --enable-werror \
+            --enable-option-checking=fatal \
+            --disable-all \
+            --enable-pdo \
+            --with-pdo-mysql \
+            --with-mysqli
+          make -j$(/usr/bin/nproc) >/dev/null
+      - name: Test pdo_mysql
+        uses: ./.github/actions/test-pdo-mysql
+        with:
+          withMysqli: false
+      - name: Test mysqli
+        uses: ./.github/actions/test-mysqli
       - name: Verify generated files are up to date
         uses: ./.github/actions/verify-generated-files
       - name: Notify Slack

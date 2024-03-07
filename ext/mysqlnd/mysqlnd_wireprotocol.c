@@ -267,6 +267,24 @@ mysqlnd_read_header(MYSQLND_PFC * pfc, MYSQLND_VIO * vio, MYSQLND_PACKET_HEADER 
 		pfc->data->packet_no++;
 		DBG_RETURN(PASS);
 	}
+	// @see https://dev.mysql.com/worklog/task/?id=12999
+	if (header->size > 0) {
+		DBG_ERR_FMT("Logical link: try reap pending data. Packet size=%zu", header->size);
+		zend_uchar *buf = emalloc(header->size);
+		if ((PASS == pfc->data->m.receive(pfc, vio, buf, header->size, conn_stats, error_info)) && buf[0] == ERROR_MARKER) {
+			php_mysqlnd_read_error_from_line(buf + 1, header->size - 1,
+			                                 error_info->error, sizeof(error_info->error),
+			                                 &error_info->error_no, error_info->sqlstate
+			);
+			if (error_info->error_no == ER_CLIENT_INTERACTION_TIMEOUT) {
+				efree(buf);
+				DBG_RETURN(FAIL);
+			} else {
+				error_info->error_no = 0;
+			}
+		}
+		efree(buf);
+	}
 
 	DBG_ERR_FMT("Logical link: packets out of order. Expected %u received %u. Packet size=%zu",
 				pfc->data->packet_no, header->packet_no, header->size);
@@ -292,9 +310,12 @@ mysqlnd_read_packet_header_and_body(MYSQLND_PACKET_HEADER * packet_header,
 {
 	DBG_ENTER("mysqlnd_read_packet_header_and_body");
 	DBG_INF_FMT("buf=%p size=%zu", buf, buf_size);
+	assert(error_info->error_no == 0);
 	if (FAIL == mysqlnd_read_header(pfc, vio, packet_header, stats, error_info)) {
 		SET_CONNECTION_STATE(connection_state, CONN_QUIT_SENT);
-		SET_CLIENT_ERROR(error_info, CR_SERVER_GONE_ERROR, UNKNOWN_SQLSTATE, mysqlnd_server_gone);
+		if (error_info->error_no == 0) {
+			SET_CLIENT_ERROR(error_info, CR_SERVER_GONE_ERROR, UNKNOWN_SQLSTATE, mysqlnd_server_gone);
+		}
 		DBG_ERR_FMT("Can't read %s's header", packet_type_as_text);
 		DBG_RETURN(FAIL);
 	}

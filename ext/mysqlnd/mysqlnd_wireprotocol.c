@@ -269,21 +269,16 @@ mysqlnd_read_header(MYSQLND_PFC * pfc, MYSQLND_VIO * vio, MYSQLND_PACKET_HEADER 
 	}
 	// @see https://dev.mysql.com/worklog/task/?id=12999
 	if (header->size > 0) {
-		DBG_ERR_FMT("Logical link: try reap pending data. Packet size=%zu", header->size);
-		zend_uchar *buf = emalloc(header->size);
+		zend_uchar *buf = mnd_emalloc(header->size);
 		if ((PASS == pfc->data->m.receive(pfc, vio, buf, header->size, conn_stats, error_info)) && buf[0] == ERROR_MARKER) {
 			php_mysqlnd_read_error_from_line(buf + 1, header->size - 1,
 			                                 error_info->error, sizeof(error_info->error),
 			                                 &error_info->error_no, error_info->sqlstate
 			);
-			if (error_info->error_no == ER_CLIENT_INTERACTION_TIMEOUT) {
-				efree(buf);
-				DBG_RETURN(FAIL);
-			} else {
-				error_info->error_no = 0;
-			}
+			mnd_efree(buf);
+			DBG_RETURN(FAIL);
 		}
-		efree(buf);
+		mnd_efree(buf);
 	}
 
 	DBG_ERR_FMT("Logical link: packets out of order. Expected %u received %u. Packet size=%zu",

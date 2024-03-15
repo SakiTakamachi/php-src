@@ -800,6 +800,8 @@ jobs:
             --with-pdo-mysql \
             --with-mysqli
           make -j$(/usr/bin/nproc) >/dev/null
+      - name: Test mysqli
+        uses: ./.github/actions/test-mysqli
       - name: Test pdo_mysql
         uses: ./.github/actions/test-pdo-mysql
         with:

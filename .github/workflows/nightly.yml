@@ -764,7 +764,7 @@ jobs:
           token: ${{ secrets.ACTION_MONITORING_SLACK }}
   MariaDB:
     needs: GENERATE_MATRIX
-    if: ${{ needs.GENERATE_MATRIX.outputs.branches != '[]' && matrix.branch.ref != 'PHP-8.1' }}
+    if: ${{ needs.GENERATE_MATRIX.outputs.branches != '[]' }}
     services:
       maria_db:
         image: quay.io/mariadb-foundation/mariadb-devel:latest

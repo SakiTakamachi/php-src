@@ -767,7 +767,7 @@ jobs:
     if: ${{ needs.GENERATE_MATRIX.outputs.branches != '[]' }}
     services:
       maria_db:
-        image: quay.io/mariadb-foundation/mariadb-devel:latest
+        image: mariadb:11.4-rc
         ports:
           - 3306:3306
         env:

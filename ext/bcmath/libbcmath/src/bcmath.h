@@ -108,6 +108,8 @@ long bc_num2long(bc_num num);
 
 int bc_compare(bc_num n1, bc_num n2);
 
+int bc_abs_compare(bc_num n1, bc_num n2);
+
 bool bc_is_zero(bc_num num);
 
 bool bc_is_zero_for_scale(bc_num num, size_t scale);

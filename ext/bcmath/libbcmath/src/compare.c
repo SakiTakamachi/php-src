@@ -119,13 +119,7 @@ int bc_compare(bc_num n1, bc_num n2)
 {
 	/* First, compare signs. */
 	if (n1->n_sign != n2->n_sign) {
-		if (n1->n_sign == PLUS) {
-			/* Positive N1 > Negative N2 */
-			return 1;
-		} else {
-			/* Negative N1 < Positive N1 */
-			return -1;
-		}
+		return n1->n_sign == PLUS ? 1 : -1;
 	}
 
 	int ret = _bc_abs_do_compare(n1, n2);

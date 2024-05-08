@@ -65,7 +65,7 @@ static zend_always_inline int _bc_abs_do_compare(bc_num n1, bc_num n2)
 		n1bytes = _mm_cmpeq_epi8(n1bytes, n2bytes);
 
 		int mask = _mm_movemask_epi8(n1bytes);
-		if (mask != 0xffff) {
+		if (EXPECTED(mask != 0xffff)) {
 #ifdef PHP_HAVE_BUILTIN_CTZL
 			int shift = __builtin_ctz(~mask);
 			return (n1ptr[shift] > n2ptr[shift]) ? 1 : -1;
@@ -86,7 +86,7 @@ static zend_always_inline int _bc_abs_do_compare(bc_num n1, bc_num n2)
 		count--;
 	}
 
-	if (count != 0) {
+	if (EXPECTED(count != 0)) {
 		return (*n1ptr > *n2ptr) ? 1 : -1;
 	}
 
@@ -94,14 +94,14 @@ static zend_always_inline int _bc_abs_do_compare(bc_num n1, bc_num n2)
 	if (n1->n_scale != n2->n_scale) {
 		if (n1->n_scale > n2->n_scale) {
 			for (count = n1->n_scale - n2->n_scale; count > 0; count--) {
-				if (*n1ptr++ != 0) {
+				if (EXPECTED(*n1ptr++ != 0)) {
 					/* Magnitude of n1 > n2. */
 					return 1;
 				}
 			}
 		} else {
 			for (count = n2->n_scale - n1->n_scale; count > 0; count--) {
-				if (*n2ptr++ != 0) {
+				if (EXPECTED(*n2ptr++ != 0)) {
 					/* Magnitude of n1 < n2. */
 					return -1;
 				}

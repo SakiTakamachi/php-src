@@ -96,9 +96,9 @@ static inline void bc_standard_div(BC_VECTOR *n1_vector, size_t n1_arr_size, BC_
 	 * have adjusted it as already mentioned.
 	 *
 	 * Therefore, the formula can be expressed as:
-	 * (B(n2 - 1) + A) / (n2 * (n2 + 1)) <= E
-	 * (B(B/10 - 1) + B - 1) / (B/10 * (B/10 + 1)) <= E
-	 * (10B^2 - 1) / (B^2 + 10B) <= E
+	 * (B(n2 - 1) + A) / (n2 * (n2 + 1)) = E
+	 * (B(B/10 - 1) + B - 1) / (B/10 * (B/10 + 1)) = E
+	 * (10B^2 - 1) / (B^2 + 10B) = E
 	 *
 	 * Here, B is 10000 for 32-bit and 100000000 for 64-bit.
 	 * 32-bit: 999999999 / 100100000 = 9.99000998001998001998
@@ -107,12 +107,12 @@ static inline void bc_standard_div(BC_VECTOR *n1_vector, size_t n1_arr_size, BC_
 	 *
 	 * To keep the error within 1, increase the base by one digit only when calculating the quotient.
 	 * The important thing here is that only the number of carry digits that are carried down does not change.
-	 * (B(n2 - 1) + A) / (n2 * (n2 + 1)) <= E
+	 * (B(n2 - 1) + A) / (n2 * (n2 + 1)) = E
 	 *
 	 * increase base number. Assume that A' takes the maximum value at "10B - 1". Only "n2 - 1", which is a carry-down, remains unchanged.
-	 * (10B(n2 - 1) + A') / (10n2 * (10n2 + 1)) <= E
-	 * (10B(B/10 - 1) + 10B - 1) / (B/10 * (B/10 + 1)) <= E
-	 * (B^2 - 1) / (B^2 + 10B) <= E
+	 * (10B(n2 - 1) + A') / (10n2 * (10n2 + 1)) = E
+	 * (10B(B/10 - 1) + 10B - 1) / (B/10 * (B/10 + 1)) = E
+	 * (B^2 - 1) / (B^2 + 10B) = E
 	 *
 	 * Able to reduce the number of digits in the numerator by one. In other words, the error is within 1.
 	 */
@@ -148,7 +148,6 @@ static inline void bc_standard_div(BC_VECTOR *n1_vector, size_t n1_arr_size, BC_
 		}
 
 		/* sub */
-		bool neg_remainder = false;
 		BC_VECTOR sub;
 		BC_VECTOR borrow = 0;
 		BC_VECTOR *n1_calc_bottom = n1_vector + n1_arr_size - n2_arr_size - i;
@@ -166,7 +165,7 @@ static inline void bc_standard_div(BC_VECTOR *n1_vector, size_t n1_arr_size, BC_
 		}
 		/* last digit sub */
 		sub = n2_vector[j] * quot_guess + borrow;
-		neg_remainder = n1_calc_bottom[j] < sub;
+		bool neg_remainder = n1_calc_bottom[j] < sub;
 		n1_calc_bottom[j] -= sub;
 
 		/* If the temporary quotient is too large, add back n2 */

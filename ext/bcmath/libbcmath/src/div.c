@@ -83,111 +83,9 @@ static inline void bc_standard_div(
 
 	BC_VECTOR div_carry = 0;
 
-	/*
-	 * Errors might occur between the true quotient and the temporary quotient calculated using only the high order digits.
-	 * For example, the true quotient of 240 / 121 is 1.
-	 * However, if it is calculated using only the high-order digits (24 / 12), we would get 2.
-	 * We refer to this value of 2 as the temporary quotient.
-	 * We also define E to be error between the true quotient and the temporary quotient,
-	 * which in this case, is 1.
-	 *
-	 * Another example: Calculating 999_0000_0000 / 1000_9999 with base 10000.
-	 * The true quotient is 9980, but if it is calculated using only the high-order digits (999 / 1000), we would get 0
-	 * If the temporary quotient is 0, we need to carry the digits to the next division, which is 999_0000 / 1000.
-	 * The new temporary quotient we get is 9990, with error E = 10.
-	 *
-	 * Because we use the restoring division we need to perform E restorations, which can be significant if E is large.
-	 *
-	 * Therefore, for the error E to be at most 1 we adjust the number of high-order digits used to calculate the temporary quotient as follows:
-	 * - Include BC_VECTOR_SIZE + 1 digits of the divisor used in the calculation of the temporary quotient.
-	      The missing digits are filled in from the next array element.
-	 * - Adjust the number of digits in the numerator similarly to what was done for the divisor.
-	 *
-	 * e.g.
-	 * numerator = 123456780000
-	 * divisor = 123456789
-	 * base = 10000
-	 * numerator_arr = [0, 5678, 1234]
-	 * divisor_arr = [6789, 2345, 1]
-	 * numerator_top = 1234
-	 * divisor_top = 1
-	 * divisor_top_tmp = 12345 (+4 digits)
-	 * numerator_top_tmp = 12345678 (+4 digits)
-	 * tmp_quot = numerator_top_tmp / divisor_top_tmp = 1000
-	 * tmp_rem = -9000
-	 * tmp_quot is too large, so tmp_quot--, tmp_rem += divisor (restoring)
-	 * quot = 999
-	 * rem = 123447789
-	 *
-	 * Details:
-	 * Suppose that when calculating the temporary quotient, only the high-order elements of the BC_VECTOR array are used.
-	 * At this time, numerator and divisor can be considered to be decomposed as follows. (Here, B = 10^b, any b ∈ ℕ, any k ∈ ℕ)
-	 * numerator = numerator_high * B^k + numerator_low
-	 * divisor = divisor_high * B^k + divisor_low
-	 *
-	 * The error E can be expressed by the following formula.
-	 *
-	 * E = (numerator_high * B^k) / (divisor_high * B^k) - (numerator_high * B^k + numerator_low) / (divisor_high * B^k + divisor_low)
-	 * <=> E = numerator_high / divisor_high - (numerator_high * B^k + numerator_low) / (divisor_high * B^k + divisor_low)
-	 * <=> E = (numerator_high * (divisor_high * B^k + divisor_low) - (numerator_high * B^k + numerator_low) * divisor_high) / (divisor_high * (divisor_high * B^k + divisor_low))
-	 * <=> E = (numerator_high * divisor_low - divisor_high * numerator_low) / (divisor_high * (divisor_high * B^k + divisor_low))
-	 *
-	 * Find the error MAX_E when the error E is maximum (0 <= E <= MAX_E).
-	 * First, numerator_high, which only exists in the numerator, uses its maximum value.
-	 * Considering carry-back, numerator_high can be expressed as follows.
-	 * numerator_high = divisor_high * B
-	 * Also, numerator_low is only present in the numerator, but since this is a subtraction, use the smallest possible value here, 0.
-	 * numerator_low = 0
-	 *
-	 * MAX_E = (numerator_high * divisor_low - divisor_high * numerator_low) / (divisor_high * (divisor_high * B^k + divisor_low))
-	 * <=> MAX_E = (divisor_high * B * divisor_low) / (divisor_high * (divisor_high * B^k + divisor_low))
-	 *
-	 * divisor_low uses the maximum value.
-	 * divisor_low = B^k - 1
-	 * MAX_E = (divisor_high * B * divisor_low) / (divisor_high * (divisor_high * B^k + divisor_low))
-	 * <=> MAX_E = (divisor_high * B * (B^k - 1)) / (divisor_high * (divisor_high * B^k + B^k - 1))
-	 *
-	 * divisor_high uses the minimum value, but want to see how the number of digits affects the error, so represent
-	 * the minimum value as:
-	 * divisor_high = 10^x (any x ∈ ℕ)
-	 * Since B = 10^b, the formula becomes:
-	 * MAX_E = (divisor_high * B * (B^k - 1)) / (divisor_high * (divisor_high * B^k + B^k - 1))
-	 * <=> MAX_E = (10^x * 10^b * ((10^b)^k - 1)) / (10^x * (10^x * (10^b)^k + (10^b)^k - 1))
-	 *
-	 * Now let's make an approximation. Remove -1 from the numerator. Approximate the numerator to be
-	 * large and the denominator to be small, such that MAX_E is less than this expression.
-	 * Also, the denominator "(10^b)^k - 1" is never a negative value, so delete it.
-	 *
-	 * MAX_E = (10^x * 10^b * ((10^b)^k - 1)) / (10^x * (10^x * (10^b)^k + (10^b)^k - 1))
-	 * MAX_E < (10^x * 10^b * (10^b)^k) / (10^x * 10^x * (10^b)^k)
-	 * <=> MAX_E < 10^b / 10^x
-	 * <=> MAX_E < 10^(b - x)
-	 *
-	 * Therefore, found that if the number of digits in base B and divisor_high are equal, the error will be less
-	 * than 1 regardless of the number of digits in the value of k.
-	 *
-	 * Here, B is BC_VECTOR_BOUNDARY_NUM, so adjust the number of digits in high part of divisor to be BC_VECTOR_SIZE + 1.
-	 */
-	/* the number of usable digits, thus divisor_len % BC_VECTOR_SIZE == 0 implies we have BC_VECTOR_SIZE usable digits */
-	size_t divisor_top_digits = divisor_len % BC_VECTOR_SIZE;
-	if (divisor_top_digits == 0) {
-		divisor_top_digits = BC_VECTOR_SIZE;
-	}
-
-	size_t high_part_shift = POW_10_LUT[BC_VECTOR_SIZE - divisor_top_digits + 1];
-	size_t low_part_shift = POW_10_LUT[divisor_top_digits - 1];
-	BC_VECTOR divisor_high_part = divisor_vectors[divisor_top_index] * high_part_shift + divisor_vectors[divisor_top_index - 1] / low_part_shift;
+	BC_VECTOR divisor_high_part = divisor_vectors[divisor_top_index];
 	for (size_t i = 0; i < quot_arr_size; i++) {
-		BC_VECTOR numerator_high_part = numerator_vectors[numerator_top_index - i] * high_part_shift + numerator_vectors[numerator_top_index - i - 1] / low_part_shift;
-
-		/*
-		 * Determine the temporary quotient.
-		 * The maximum value of numerator_high is divisor_high * B in the previous example, so here numerator_high_part is
-		 * divisor_high_part * BC_VECTOR_BOUNDARY_NUM.
-		 * The number of digits in divisor_high_part is BC_VECTOR_SIZE + 1, so even if divisor_high_part is at its maximum value,
-		 * it will never overflow here.
-		 */
-		numerator_high_part += div_carry * BC_VECTOR_BOUNDARY_NUM * high_part_shift;
+		BC_VECTOR numerator_high_part = numerator_vectors[numerator_top_index - i] + div_carry * BC_VECTOR_BOUNDARY_NUM;
 
 		/* numerator_high_part < divisor_high_part => quotient == 0 */
 		if (numerator_high_part < divisor_high_part) {
@@ -232,12 +130,12 @@ static inline void bc_standard_div(
 		}
 		/* last digit sub */
 		sub = divisor_vectors[j] * quot_guess + borrow;
-		bool neg_remainder = numerator_calc_bottom[j] < sub;
 		numerator_calc_bottom[j] -= sub;
 
 		/* If the temporary quotient is too large, add back divisor */
-		BC_VECTOR carry = 0;
-		if (neg_remainder) {
+		int64_t rem_top = numerator_calc_bottom[j];
+		while (rem_top < 0) {
+			BC_VECTOR carry = 0;
 			quot_guess--;
 			for (j = 0; j < divisor_arr_size - 1; j++) {
 				numerator_calc_bottom[j] += divisor_vectors[j] + carry;
@@ -246,6 +144,7 @@ static inline void bc_standard_div(
 			}
 			/* last add */
 			numerator_calc_bottom[j] += divisor_vectors[j] + carry;
+			rem_top = (int64_t) numerator_calc_bottom[j];
 		}
 
 		quot_vectors[quot_top_index - i] = quot_guess;

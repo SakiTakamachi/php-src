@@ -35,7 +35,8 @@ bc_num bc_long2num(zend_long lval)
 	if (UNEXPECTED(lval == LONG_MIN)) {
 		num = bc_new_num_nonzeroed(BC_LONG_MAX_DIGITS, 0);
 		const char *ptr = LONG_MIN_DIGITS;
-		bc_copy_and_toggle_bcd(num->n_value, ptr, ptr + BC_LONG_MAX_DIGITS);
+		const char *end = ptr + BC_LONG_MAX_DIGITS;
+		bc_copy_and_toggle_bcd(num->n_value, ptr, end);
 		num->n_sign = MINUS;
 		return num;
 	} else if (negative) {

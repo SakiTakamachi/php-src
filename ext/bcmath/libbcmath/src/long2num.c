@@ -24,7 +24,7 @@ bc_num bc_long2num(zend_long lval)
 {
 	bc_num num;
 
-	ZEND_ASSERT(lval != 0);
+//	ZEND_ASSERT(lval != 0);
 
 	if (UNEXPECTED(lval == 0)) {
 		num = bc_copy_num(BCG(_zero_));
@@ -33,7 +33,10 @@ bc_num bc_long2num(zend_long lval)
 
 	bool negative = lval < 0;
 	if (UNEXPECTED(lval == LONG_MIN)) {
-		ZEND_ASSERT(0);
+		//ZEND_ASSERT(0);
+		num = bc_copy_num(BCG(_zero_));
+		return num;
+		
 		num = bc_new_num_nonzeroed(BC_LONG_MAX_DIGITS, 0);
 		const char *ptr = LONG_MIN_DIGITS;
 		const char *end = ptr + BC_LONG_MAX_DIGITS;

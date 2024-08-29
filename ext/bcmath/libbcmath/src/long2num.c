@@ -24,8 +24,10 @@ bc_num bc_long2num(zend_long lval)
 {
 	bc_num num;
 
+	ZEND_ASSERT(BC_LONG_MAX_DIGITS == 19);
+
 	if (UNEXPECTED(lval == 0)) {
-		num = bc_copy_num(BCG(_one_));
+		num = bc_copy_num(BCG(_ZERO_));
 		return num;
 	}
 

@@ -43,13 +43,11 @@
 
 #if SIZEOF_SIZE_T >= 8
 #  define BC_BSWAP(u) ZEND_BYTES_SWAP64(u)
-   typedef uint64_t BC_VECTOR;
 #  define BC_VECTOR_SIZE 8
 /* The boundary number is computed from BASE ** BC_VECTOR_SIZE */
 #  define BC_VECTOR_BOUNDARY_NUM (BC_VECTOR) 100000000
 #else
 #  define BC_BSWAP(u) ZEND_BYTES_SWAP32(u)
-   typedef uint32_t BC_VECTOR;
 #  define BC_VECTOR_SIZE 4
 /* The boundary number is computed from BASE ** BC_VECTOR_SIZE */
 #  define BC_VECTOR_BOUNDARY_NUM (BC_VECTOR) 10000
@@ -66,6 +64,8 @@
  * Typically this is 1844 for 64bit and 42 for 32bit.
  */
 #define BC_VECTOR_NO_OVERFLOW_ADD_COUNT (~((BC_VECTOR) 0) / (BC_VECTOR_BOUNDARY_NUM * BC_VECTOR_BOUNDARY_NUM))
+
+#define BC_LENGTH_TO_VECTOR_SIZE(len) (((len) + BC_VECTOR_SIZE - 1) / BC_VECTOR_SIZE)
 
 
 /* routines */

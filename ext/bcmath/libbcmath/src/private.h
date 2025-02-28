@@ -70,6 +70,16 @@
 
 #define BC_LENGTH_TO_VECTOR_SIZE(len) (((len) + BC_VECTOR_SIZE - 1) / BC_VECTOR_SIZE)
 
+#define BC_PROTRUNDED_LEN_FROM_LEN(len) ((len) % BC_VECTOR_SIZE)
+
+#define BC_VECTORS_UPPER_PTR(num) ((num)->n_vectors + (num)->n_int_vsize + (num)->n_frac_vsize - 1)
+#define BC_VECTORS_INT_LOWER_PTR(num) ((num)->n_vectors + (num)->n_frac_vsize)
+#define BC_VECTORS_FRAC_UPPER_PTR(num) ((num)->n_vectors + (num)->n_frac_vsize - 1)
+
+static const BC_VECTOR BC_POW_10_LUT[9] = {
+	1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000
+};
+
 
 /* routines */
 bcmath_compare_result _bc_do_compare (bc_num n1, bc_num n2, size_t scale, bool use_sign);

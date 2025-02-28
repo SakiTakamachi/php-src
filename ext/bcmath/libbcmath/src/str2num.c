@@ -31,7 +31,6 @@
 
 #include "bcmath.h"
 #include "convert.h"
-#include "private.h"
 #include <stdbool.h>
 #include <stddef.h>
 #ifdef __SSE2__
@@ -112,7 +111,6 @@ bool bc_str2num(bc_num *num, const char *str, const char *end, size_t scale, siz
 	const char *ptr = str;
 	const char *fractional_ptr = NULL;
 	const char *fractional_end = NULL;
-	bool zero_int = false;
 
 	ZEND_ASSERT(*num == NULL);
 
@@ -196,27 +194,17 @@ after_fractional:
 	}
 
 	/* Adjust numbers and allocate storage and initialize fields. */
-	if (digits == 0) {
-		zero_int = true;
-		digits = 1;
-	}
-	*num = bc_new_num_nonzeroed(digits, str_scale);
+	*num = bc_new_num_nonzeroed(digits == 0 ? 1 : digits, str_scale);
 	(*num)->n_sign = *str == '-' ? MINUS : PLUS;
-	char *nptr = (*num)->n_value;
 
-	if (zero_int) {
-		*nptr++ = 0;
-		/*
-		 * If zero_int is true and the str_scale is 0, there is an early return,
-		 * so here str_scale is always greater than 0.
-		 */
-		nptr = bc_copy_and_toggle_bcd(nptr, fractional_ptr, fractional_end);
+	if (digits == 0) {
+		*(BC_VECTORS_INT_LOWER_PTR(*num)) = 0;
 	} else {
 		const char *integer_end = integer_ptr + digits;
-		nptr = bc_copy_and_toggle_bcd(nptr, integer_ptr, integer_end);
-		if (str_scale > 0) {
-			nptr = bc_copy_and_toggle_bcd(nptr, fractional_ptr, fractional_end);
-		}
+		bc_convert_int_str_to_vector(BC_VECTORS_INT_LOWER_PTR(*num), integer_end - 1, (*num)->n_int_vsize, BC_PROTRUNDED_LEN_FROM_LEN(digits));
+	}
+	if (str_scale > 0) {
+		bc_convert_frac_str_to_vector((*num)->n_vectors, fractional_end - 1, (*num)->n_frac_vsize, BC_PROTRUNDED_LEN_FROM_LEN(str_scale));
 	}
 
 	return true;

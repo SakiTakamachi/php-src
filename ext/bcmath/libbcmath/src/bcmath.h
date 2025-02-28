@@ -33,6 +33,15 @@
 #define _BCMATH_H_
 
 #include <stddef.h>
+#include <stdbool.h>
+#include "zend.h"
+#include "zend_string.h"
+
+#if SIZEOF_SIZE_T >= 8
+   typedef uint64_t BC_VECTOR;
+#else
+   typedef uint32_t BC_VECTOR;
+#endif
 
 typedef enum {PLUS, MINUS} sign;
 
@@ -41,7 +50,9 @@ typedef struct bc_struct *bc_num;
 typedef struct bc_struct {
 	size_t        n_len;   /* The number of digits before the decimal point. */
 	size_t        n_scale; /* The number of digits after the decimal point. */
-	char         *n_value; /* The number. Not zero char terminated. */
+	size_t        n_int_vsize; /* The size of integer part of n_vectors. */
+	size_t        n_frac_vsize; /* The size of the fractional part of n_vectors. */
+	BC_VECTOR    *n_vectors; /* Array of BC_VECTOR. */
 	unsigned int  n_refs;  /* The number of pointers to this number. */
 	sign          n_sign;
 } bc_struct;
@@ -50,15 +61,8 @@ typedef struct bc_struct {
 #include "config.h"
 #endif
 
-#include "zend.h"
-#include <stdbool.h>
-#include "zend_string.h"
-
 /* Needed for BCG() macro and PHP_ROUND_XXX */
 #include "../../php_bcmath.h"
-
-/* The base used in storing the numbers in n_value above.
-   Currently, this MUST be 10. */
 
 #define BASE 10
 
@@ -83,6 +87,10 @@ void bc_force_free_number(bc_num *num);
 bc_num _bc_new_num_ex(size_t length, size_t scale, bool persistent);
 
 bc_num _bc_new_num_nonzeroed_ex(size_t length, size_t scale, bool persistent);
+
+bc_num _bc_new_num_with_vsize_ex(size_t int_vsize, size_t length, size_t frac_vsize, size_t scale, bool persistent);
+
+bc_num _bc_new_num_nonzeroed_with_vsize_ex(size_t int_vsize, size_t length, size_t frac_vsize, size_t scale, bool persistent);
 
 void _bc_free_num_ex(bc_num *num, bool persistent);
 
@@ -177,9 +185,11 @@ void bc_raise_bc_exponent(bc_num base, bc_num exponent, bc_num *resul, size_t sc
 bool bc_sqrt(bc_num *num, size_t scale);
 
 /* Prototypes needed for external utility routines. */
-#define bc_new_num(length, scale)			_bc_new_num_ex((length), (scale), 0)
-#define bc_new_num_nonzeroed(length, scale)	_bc_new_num_nonzeroed_ex((length), (scale), 0)
-#define bc_free_num(num)					_bc_free_num_ex((num), 0)
-#define bc_num2str(num)						bc_num2str_ex((num), (num->n_scale))
+#define bc_new_num(length, scale)											_bc_new_num_ex((length), (scale), 0)
+#define bc_new_num_nonzeroed(length, scale)									_bc_new_num_nonzeroed_ex((length), (scale), 0)
+#define bc_new_num_with_vsize(int_vsize, len, frac_vsize, scale)			_bc_new_num_with_vsize_ex((int_vsize), (len), (frac_vsize), (scale), 0)
+#define bc_new_num_nonzeroed_with_vsize(int_vsize, len, frac_vsize, scale)	_bc_new_num_nonzeroed_with_vsize_ex((int_vsize), (len), (frac_vsize), (scale), 0)
+#define bc_free_num(num)													_bc_free_num_ex((num), 0)
+#define bc_num2str(num)														bc_num2str_ex((num), (num->n_scale))
 
 #endif

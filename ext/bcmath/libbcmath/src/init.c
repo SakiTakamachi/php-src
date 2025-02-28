@@ -30,14 +30,16 @@
 *************************************************************************/
 
 #include "bcmath.h"
+#include "private.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 #include "zend_alloc.h"
 
-static bc_num _bc_new_num_nonzeroed_ex_internal(size_t length, size_t scale, bool persistent)
+static bc_num _bc_new_num_nonzeroed_ex_internal(size_t int_vsize, size_t length, size_t frac_vsize, size_t scale, bool persistent)
 {
-	size_t required_size = zend_safe_address_guarded(1, sizeof(bc_struct) + (ZEND_MM_ALIGNMENT - 1) + length, scale);
+	size_t vsize = (int_vsize + frac_vsize) * sizeof(BC_VECTOR);
+	size_t required_size = zend_safe_address_guarded(1, sizeof(bc_struct) + (ZEND_MM_ALIGNMENT - 1) + vsize , 0);
 	required_size &= -ZEND_MM_ALIGNMENT;
 	bc_num temp;
 
@@ -46,7 +48,6 @@ static bc_num _bc_new_num_nonzeroed_ex_internal(size_t length, size_t scale, boo
 		BCG(arena_offset) += required_size;
 		temp->n_refs = 2; /* prevent freeing */
 	} else {
-		/* PHP Change: malloc() -> pemalloc(), removed free_list code, merged n_ptr and n_value */
 		temp = pemalloc(required_size, persistent);
 		temp->n_refs = 1;
 	}
@@ -54,21 +55,44 @@ static bc_num _bc_new_num_nonzeroed_ex_internal(size_t length, size_t scale, boo
 	temp->n_sign = PLUS;
 	temp->n_len = length;
 	temp->n_scale = scale;
-	temp->n_value = (char *) temp + sizeof(bc_struct);
+	temp->n_int_vsize = int_vsize;
+	temp->n_frac_vsize = frac_vsize;
+	temp->n_vectors = (BC_VECTOR *) ((char *) temp + sizeof(bc_struct));
 	return temp;
+}
+
+static inline bc_num bc_set_zeros(bc_num num)
+{
+	size_t vsize = num->n_int_vsize + num->n_frac_vsize;
+	for (size_t i = 0; i < vsize; i++) {
+		num->n_vectors[i] = 0;
+	}
+	return num;
 }
 
 /* new_num allocates a number and sets fields to known values. */
 bc_num _bc_new_num_ex(size_t length, size_t scale, bool persistent)
 {
-	bc_num temp = _bc_new_num_nonzeroed_ex_internal(length, scale, persistent);
-	memset(temp->n_value, 0, length + scale);
-	return temp;
+	size_t int_vsize = BC_LENGTH_TO_VECTOR_SIZE(length);
+	size_t frac_vsize = BC_LENGTH_TO_VECTOR_SIZE(scale);
+	bc_num temp = _bc_new_num_nonzeroed_ex_internal(int_vsize, length, frac_vsize, scale, persistent);
+	return bc_set_zeros(temp);
 }
 
 bc_num _bc_new_num_nonzeroed_ex(size_t length, size_t scale, bool persistent)
 {
-	return _bc_new_num_nonzeroed_ex_internal(length, scale, persistent);
+	return _bc_new_num_nonzeroed_ex_internal(BC_LENGTH_TO_VECTOR_SIZE(length), length, BC_LENGTH_TO_VECTOR_SIZE(scale), scale, persistent);
+}
+
+bc_num _bc_new_num_with_vsize_ex(size_t int_vsize, size_t length, size_t frac_vsize, size_t scale, bool persistent)
+{
+	bc_num temp = _bc_new_num_nonzeroed_ex_internal(int_vsize, length, frac_vsize, scale, persistent);
+	return bc_set_zeros(temp);
+}
+
+bc_num _bc_new_num_nonzeroed_with_vsize_ex(size_t int_vsize, size_t length, size_t frac_vsize, size_t scale, bool persistent)
+{
+	return _bc_new_num_nonzeroed_ex_internal(int_vsize, length, frac_vsize, scale, persistent);
 }
 
 /* "Frees" a bc_num NUM.  Actually decreases reference count and only
@@ -90,11 +114,11 @@ void _bc_free_num_ex(bc_num *num, bool persistent)
 
 void bc_init_numbers(void)
 {
-	BCG(_zero_) = _bc_new_num_ex(1, 0, 1);
-	BCG(_one_) = _bc_new_num_ex(1, 0, 1);
-	BCG(_one_)->n_value[0] = 1;
-	BCG(_two_) = _bc_new_num_ex(1, 0, 1);
-	BCG(_two_)->n_value[0] = 2;
+	BCG(_zero_) = _bc_new_num_with_vsize_ex(1, 1, 0, 0, 1);
+	BCG(_one_) = _bc_new_num_nonzeroed_with_vsize_ex(1, 1, 0, 0, 1);
+	BCG(_one_)->n_vectors[0] = 1;
+	BCG(_two_) = _bc_new_num_nonzeroed_with_vsize_ex(1, 1, 0, 0, 1);
+	BCG(_two_)->n_vectors[0] = 2;
 }
 
 void bc_force_free_number(bc_num *num)

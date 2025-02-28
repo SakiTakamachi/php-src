@@ -14,6 +14,7 @@
    +----------------------------------------------------------------------+
 */
 
+#include "bcmath.h"
 #include "private.h"
 
 #ifndef BCMATH_CONVERT_H

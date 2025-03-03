@@ -82,6 +82,9 @@ static const BC_VECTOR BC_POW_10_LUT[9] = {
 	1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000
 };
 
+#define BC_EXTRACT_UPPER_DIGIT(vector, length) ((vector) / BC_POW_10_LUT[BC_VECTOR_SIZE - (length)])
+#define BC_EXTRACT_LOWER_DIGIT(vector, length) ((vector) % BC_POW_10_LUT[(length)])
+
 /* routines */
 bcmath_compare_result _bc_do_compare (bc_num n1, bc_num n2, size_t scale, bool use_sign);
 bc_num _bc_do_add (bc_num n1, bc_num n2);

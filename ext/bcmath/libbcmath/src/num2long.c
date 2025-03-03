@@ -48,14 +48,13 @@ long bc_num2long(bc_num num)
 		return 0;
 	}
 
-	/**
-	 * e.g.
-	 * 123.4567_8903_21 => [2100_0000, 4567_8903, 123]
-	 * n_frac_vsize is 2
-	 * So, int start index is 2
-	 */
-	size_t int_start = num->n_frac_vsize;
-	BC_VECTOR tmp = num->n_vectors[int_start] + num->n_vectors[int_start + 1] * BC_VECTOR_BOUNDARY_NUM;
+	BC_VECTOR *int_vptr = BC_VECTORS_INT_LOWER_PTR(num);
+	BC_VECTOR tmp = 0;
+	BC_VECTOR base = 1;
+	for (size_t i = 0; i < num->n_int_vsize; i++) {
+		tmp += int_vptr[i] * base;
+		base *= BC_VECTOR_BOUNDARY_NUM;
+	}
 
 	if (num->n_sign == MINUS) {
 		if (UNEXPECTED(tmp - 1 > LONG_MAX)) {
@@ -79,24 +78,24 @@ long bc_num2long(bc_num num)
 		return 0;
 	}
 
-	/**
-	 * e.g.
-	 * 123.4567_8 => [8000, 4567, 123]
-	 * n_frac_vsize is 2
-	 * So, int start index is 2
-	 */
-	size_t int_start = num->n_frac_vsize;
-	long tmp = num->n_vectors[int_start] + num->n_vectors[int_start + 1] * BC_VECTOR_BOUNDARY_NUM;
+	BC_VECTOR *int_vptr = BC_VECTORS_INT_LOWER_PTR(num);
+	BC_VECTOR tmp = 0;
+	BC_VECTOR base = 1;
+	for (size_t i = 0; i < num->n_int_vsize; i++) {
+		tmp += int_vptr[i] * base;
+		base *= BC_VECTOR_BOUNDARY_NUM;
+	}
+
 	long long_max_high_part = LONG_MAX / (BC_VECTOR_BOUNDARY_NUM * BC_VECTOR_BOUNDARY_NUM);
 	long long_max_low_part = LONG_MAX % (BC_VECTOR_BOUNDARY_NUM * BC_VECTOR_BOUNDARY_NUM);
 
 	if (num->n_int_vsize == 3) {
-		if (UNEXPECTED(num->n_vectors[int_start + 2] > long_max_high_part)) {
+		if (UNEXPECTED(int_vptr[2] > long_max_high_part)) {
 			return 0;
 		}
 
-		long tmp_high_part = num->n_vectors[int_start + 2] * BC_VECTOR_BOUNDARY_NUM * BC_VECTOR_BOUNDARY_NUM;
-		if (num->n_vectors[int_start + 2] == long_max_high_part) {
+		long tmp_high_part = int_vptr[2] * BC_VECTOR_BOUNDARY_NUM * BC_VECTOR_BOUNDARY_NUM;
+		if (int_vptr[2] == long_max_high_part) {
 			if (num->n_sign == MINUS) {
 				if (UNEXPECTED(tmp > long_max_low_part + 1)) {
 					return 0;

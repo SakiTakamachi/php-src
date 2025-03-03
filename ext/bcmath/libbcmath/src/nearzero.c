@@ -31,6 +31,7 @@
 
 #include <stdbool.h>
 #include "bcmath.h"
+#include "private.h"
 #include <stddef.h>
 
 /* In some places we need to check if the number NUM is almost zero.
@@ -44,14 +45,26 @@ bool bc_is_near_zero(bc_num num, size_t scale)
 		scale = num->n_scale;
 	}
 
-	/* Initialize */
-	size_t count = num->n_len + scale;
-	const char *nptr = num->n_value;
+	BC_VECTOR *vptr = BC_VECTORS_UPPER_PTR(num);
+	size_t scale_vsize = BC_LENGTH_TO_VECTOR_SIZE(scale);
+	size_t vsize = num->n_int_vsize + scale_vsize;
 
 	/* The check */
-	while ((count > 0) && (*nptr++ == 0)) {
-		count--;
+	while (*vptr == 0 && vsize > 0) {
+		vsize--;
+		vptr--;
 	}
 
-	return count == 0 || (count == 1 && *--nptr == 1);
+	if (vsize == 1) {
+		size_t protruded_scale = BC_PROTRUNDED_LEN_FROM_LEN(scale);
+		if (num->n_int_vsize == 1) {
+			return *vptr == 1;
+		} else if (protruded_scale > 0) {
+			return BC_EXTRACT_UPPER_DIGIT(*vptr, protruded_scale) <= 1; // 0 or 1
+		} else {
+			return false;
+		}
+	}
+
+	return vsize == 0;
 }

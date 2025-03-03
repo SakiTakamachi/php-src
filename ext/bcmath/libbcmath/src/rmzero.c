@@ -38,22 +38,51 @@
 
 void _bc_rm_leading_zeros(bc_num num)
 {
-	/* We can move n_value to point to the first non-zero digit! */
-	while (*num->n_value == 0 && num->n_len > 1) {
-		num->n_value++;
-		num->n_len--;
+	BC_VECTOR *vptr = BC_VECTORS_UPPER_PTR(num);
+	while (*vptr == 0 && num->n_int_vsize > 1) {
+		vptr--;
+		num->n_int_vsize--;
+		num->n_len -= BC_VECTOR_SIZE;
+	}
+
+	BC_VECTOR tmp = *vptr;
+	for (size_t i = BC_VECTOR_SIZE / 2; i > 0; i /= 2) {
+		BC_VECTOR upper = tmp / BC_POW_10_LUT[i];
+
+		if (upper > 0) {
+			tmp = upper;
+		} else {
+			tmp %= BC_POW_10_LUT[i];
+			num->n_len -= i;
+		}
 	}
 }
 
 void bc_rm_trailing_zeros(bc_num num)
 {
-	if (num->n_scale == 0) {
+	if (num->n_frac_vsize == 0) {
 		return;
 	}
 
-	char *end = num->n_value + num->n_len + num->n_scale - 1;
-	while (*end == 0 && num->n_scale > 0) {
-		num->n_scale--;
-		end--;
+	while (*num->n_vectors == 0 && num->n_frac_vsize > 0) {
+		num->n_vectors++;
+		num->n_frac_vsize--;
+		num->n_scale -= BC_VECTOR_SIZE;
+	}
+
+	if (num->n_frac_vsize == 0) {
+		return;
+	}
+
+	BC_VECTOR tmp = *num->n_vectors;
+	for (size_t i = BC_VECTOR_SIZE / 2; i > 0; i /= 2) {
+		BC_VECTOR lower = tmp % BC_POW_10_LUT[i];
+
+		if (lower > 0) {
+			tmp = lower;
+		} else {
+			tmp /= BC_POW_10_LUT[i];
+			num->n_scale -= i;
+		}
 	}
 }

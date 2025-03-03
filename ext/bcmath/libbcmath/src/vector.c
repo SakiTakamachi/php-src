@@ -10,20 +10,36 @@
    | obtain it through the world-wide-web, please send a note to          |
    | license@php.net so we can mail you a copy immediately.               |
    +----------------------------------------------------------------------+
-   | Authors: Niels Dossche <nielsdos@php.net>                            |
+   | Authors: Saki Takamachi <saki@php.net>                               |
    +----------------------------------------------------------------------+
 */
 
 #include "bcmath.h"
 #include "private.h"
 
-#ifndef BCMATH_CONVERT_H
-#define BCMATH_CONVERT_H
+size_t bc_get_int_protruded_length(bc_num num)
+{
+	BC_VECTOR *vptr = BC_VECTORS_UPPER_PTR(num);
+	for (size_t i = 0; i < num->n_int_vsize; i++) {
+		if (*vptr != 0) {
+			break;
+		}
+		vptr--;
+	}
 
-void bc_convert_int_str_to_vector(BC_VECTOR *vectors, const char *source, size_t vector_size, size_t protruded_len);
-void bc_convert_frac_str_to_vector(BC_VECTOR *vectors, const char *source, size_t vector_size, size_t protruded_len);
-void bc_write_bcd_representation(uint32_t value, char *str);
-char *bc_convert_int_vector_to_str(char *str, BC_VECTOR *vectors, size_t vector_size, size_t offset);
-char *bc_convert_frac_vector_to_str(char *str, BC_VECTOR *vectors, size_t vector_size, size_t offset);
+	BC_VECTOR tmp = *vptr;
+	BC_VECTOR higher;
+	size_t protruded_len = BC_VECTOR_SIZE;
+	for (size_t i = BC_VECTOR_SIZE / 2; i > 0; i /= 2) {
+		higher = tmp / BC_POW_10_LUT[i];
 
-#endif
+		if (higher > 0) {
+			tmp = higher;
+		} else {
+			tmp %= BC_POW_10_LUT[i];
+			protruded_len -= i;
+		}
+	}
+
+	return protruded_len % BC_VECTOR_SIZE;
+}

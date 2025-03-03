@@ -37,9 +37,11 @@
 
 /* This will be 0x01010101 for 32-bit and 0x0101010101010101 for 64-bit */
 #define SWAR_ONES (~((size_t) 0) / 0xFF)
+#define SWAR_ONES_4BYTES (~((uint32_t) 0) / 0xFF)
 /* This repeats a byte `x` into an entire 32/64-bit word.
  * Example: SWAR_REPEAT(0xAB) will be 0xABABABAB for 32-bit and 0xABABABABABABABAB for 64-bit. */
 #define SWAR_REPEAT(x) (SWAR_ONES * (x))
+#define SWAR_REPEAT_4BYTES(x) (SWAR_ONES_4BYTES * (x))
 
 #if SIZEOF_SIZE_T >= 8
 #  define BC_BSWAP(u) ZEND_BYTES_SWAP64(u)
@@ -66,6 +68,10 @@
 #define BC_VECTOR_NO_OVERFLOW_ADD_COUNT (~((BC_VECTOR) 0) / (BC_VECTOR_BOUNDARY_NUM * BC_VECTOR_BOUNDARY_NUM))
 
 #define BC_LENGTH_TO_VECTOR_SIZE(len) (((len) + BC_VECTOR_SIZE - 1) / BC_VECTOR_SIZE)
+
+#define BC_VECTORS_UPPER_PTR(num) ((num)->n_vectors + (num)->n_int_vsize + (num)->n_frac_vsize - 1)
+#define BC_VECTORS_INT_LOWER_PTR(num) ((num)->n_vectors + (num)->n_frac_vsize)
+#define BC_VECTORS_FRAC_UPPER_PTR(num) ((num)->n_vectors + (num)->n_frac_vsize - 1)
 
 const BC_VECTOR BC_POW_10_LUT[9] = {
 	1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000

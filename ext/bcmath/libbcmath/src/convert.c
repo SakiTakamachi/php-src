@@ -180,8 +180,10 @@ static inline unsigned short bc_expand_lut(unsigned char c)
 
 /* Writes the character representation of the number encoded in value.
  * E.g. if value = 1234, then the string "1234" will be written to str. */
-void bc_write_bcd_representation(uint32_t value, char *str)
+static inline void bc_write_str_representation(uint32_t value, char *str)
 {
+	const uint32_t bulk_shift = SWAR_REPEAT_4BYTES('0');
+
 	uint32_t upper = value / 100; /* e.g. 12 */
 	uint32_t lower = value % 100; /* e.g. 34 */
 
@@ -192,5 +194,88 @@ void bc_write_bcd_representation(uint32_t value, char *str)
 	/* Note: big endian, so `upper` comes before `lower`! */
 	uint32_t digits = bc_expand_lut(LUT[upper]) << 16 | bc_expand_lut(LUT[lower]);
 #endif
+	digits ^= bulk_shift;
 	memcpy(str, &digits, sizeof(digits));
+}
+
+static inline char *bc_convert_vector_to_str(char *str, BC_VECTOR vector, BC_VECTOR base, size_t length)
+{
+	for (size_t i = 0; i < length; i++) {
+		*str = '0' + vector / base;
+		base /= BASE;
+		vector %= base;
+		str++;
+	}
+	return str;
+}
+
+static inline char *bc_bulk_convert_vector_to_str(char *str, BC_VECTOR *vectors, size_t vector_index, size_t loop_end_index)
+{
+	for (; vector_index >= loop_end_index; vector_index--) {
+#if BC_VECTOR_SIZE == 8
+		bc_write_str_representation(vectors[vector_index] / 10000, str);
+		str += 4;
+		bc_write_str_representation(vectors[vector_index] % 10000, str + 4);
+		str += 8;
+#else
+		bc_write_str_representation(vectors[vector_index], str);
+		str += 4;
+#endif
+	}
+	return str;
+}
+
+char *bc_convert_int_vector_to_str(char *str, BC_VECTOR *vectors, size_t vector_size, size_t protruded_len)
+{
+	size_t vector_index = vector_size - 1;
+
+	if (protruded_len > 0) {
+#if BC_VECTOR_SIZE == 8
+		bool half_vector = false;
+		if (protruded_len >= 4) {
+			protruded_len -= 4;
+			half_vector = true;
+		}
+
+		if (protruded_len > 0) {
+			str = bc_convert_str_to_vector(str, vectors[vector_index], BC_POW_10_LUT[protruded_len - 1 + (half_vector ? 4 : 0)], protruded_len);
+		}
+
+		if (half_vector) {
+			bc_write_str_representation(vectors[vector_index] % 10000, str);
+			str += 4;
+		}
+#else
+		str = bc_convert_str_to_vector(str, vectors[vector_index], BC_POW_10_LUT[protruded_len - 1], protruded_len);
+#endif
+		vector_index--;
+	}
+
+	str = bc_bulk_convert_vector_to_str(str, vectors, vector_index, 0);
+
+	return str;
+}
+
+char *bc_convert_frac_vector_to_str(char *str, BC_VECTOR *vectors, size_t vector_size, size_t protruded_len)
+{
+	size_t vector_index = vector_size - 1;
+	str = bc_bulk_convert_vector_to_str(str, vectors, vector_index, protruded_len > 0 ? 1 : 0);
+
+	if (protruded_len > 0) {
+#if BC_VECTOR_SIZE == 8
+		if (length >= 4) {
+			bc_write_str_representation(vectors[vector_index] % 10000, str);
+			str += 4;
+			protruded_len -= 4;
+		}
+
+		if (protruded_len > 0) {
+			str = bc_convert_str_to_vector(str, vectors[vector_index], BC_POW_10_LUT[BC_VECTOR_SIZE - 1], protruded_len);
+		}
+#else
+		str = bc_convert_str_to_vector(str, vectors[vector_index], BC_POW_10_LUT[BC_VECTOR_SIZE - 1], protruded_len);
+#endif
+	}
+
+	return str;
 }

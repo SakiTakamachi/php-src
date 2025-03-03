@@ -78,9 +78,11 @@ bool bc_sqrt(bc_num *num, size_t scale)
 	} else {
 		/* The number is greater than 1.  Guess should start at 10^(exp/2). */
 		bc_init_num(&guess);
-		bc_int2num(&guess, 10);
+		bc_free_num (&guess);
+		guess = bc_long2num(10);
 
-		bc_int2num(&guess1, local_num->n_len);
+		bc_free_num (&guess1);
+		guess1 = bc_long2num(local_num->n_len);
 		bc_multiply_ex(guess1, point5, &guess1, 0);
 		guess1->n_scale = 0;
 		bc_raise_bc_exponent(guess, guess1, &guess, 0);

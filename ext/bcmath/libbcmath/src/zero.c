@@ -30,6 +30,7 @@
 *************************************************************************/
 
 #include "bcmath.h"
+#include "private.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -37,22 +38,33 @@
 
 bool bc_is_zero_for_scale(bc_num num, size_t scale)
 {
-	size_t count;
-	char *nptr;
-
-	/* Quick check. */
+	/* Quick check */
 	if (num == BCG(_zero_)) {
 		return true;
 	}
 
-	/* Initialize */
-	count = num->n_len + scale;
-	nptr = num->n_value;
+	size_t scale_vsize = BC_LENGTH_TO_VECTOR_SIZE(scale);
+	if (scale_vsize > num->n_frac_vsize) {
+		scale_vsize = num->n_frac_vsize;
+	}
+	BC_VECTOR *vptr = BC_VECTORS_UPPER_PTR(num);
+	size_t vsize = num->n_int_vsize + scale_vsize;
 
 	/* The check */
-	while ((count > 0) && (*nptr++ == 0)) count--;
+	while (*vptr == 0 && vsize > 0) {
+		vsize--;
+		vptr--;
+	}
 
-	return count == 0;
+	if (vsize == 1 && num->n_scale > scale) {
+		size_t protruded_scale = scale % BC_VECTOR_SIZE;
+		if (protruded_scale > 0) {
+			BC_VECTOR tmp = *vptr / BC_POW_10_LUT[BC_VECTOR_SIZE - protruded_scale];
+			return tmp == 0;
+		}
+	}
+
+	return vsize == 0;
 }
 
 bool bc_is_zero(bc_num num)

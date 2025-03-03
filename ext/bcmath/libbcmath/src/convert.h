@@ -23,5 +23,7 @@
 void bc_convert_int_str_to_vector(BC_VECTOR *vectors, const char *source, size_t vector_size, size_t protruded_len);
 void bc_convert_frac_str_to_vector(BC_VECTOR *vectors, const char *source, size_t vector_size, size_t protruded_len);
 void bc_write_bcd_representation(uint32_t value, char *str);
+char *bc_convert_int_vector_to_str(char *str, const BC_VECTOR *vectors, size_t vector_size, size_t protruded_len);
+char *bc_convert_frac_vector_to_str(char *str, const BC_VECTOR *vectors, size_t vector_size, size_t protruded_len);
 
 #endif

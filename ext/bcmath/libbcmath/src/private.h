@@ -40,9 +40,11 @@
 
 /* This will be 0x01010101 for 32-bit and 0x0101010101010101 for 64-bit */
 #define SWAR_ONES (~((size_t) 0) / 0xFF)
+#define SWAR_ONES_32 (~((uint32_t) 0) / 0xFF)
 /* This repeats a byte `x` into an entire 32/64-bit word.
  * Example: SWAR_REPEAT(0xAB) will be 0xABABABAB for 32-bit and 0xABABABABABABABAB for 64-bit. */
 #define SWAR_REPEAT(x) (SWAR_ONES * (x))
+#define SWAR_REPEAT_32(x) (SWAR_ONES_32 * (x))
 
 #if SIZEOF_SIZE_T >= 8
 #  define BC_BSWAP(u) ZEND_BYTES_SWAP64(u)
@@ -79,7 +81,6 @@
 static const BC_VECTOR BC_POW_10_LUT[9] = {
 	1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000
 };
-
 
 /* routines */
 bcmath_compare_result _bc_do_compare (bc_num n1, bc_num n2, size_t scale, bool use_sign);

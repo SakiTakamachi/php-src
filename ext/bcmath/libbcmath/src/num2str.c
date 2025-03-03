@@ -30,6 +30,7 @@
 *************************************************************************/
 
 #include "bcmath.h"
+#include "private.h"
 #include "convert.h"
 #include "zend_string.h"
 
@@ -38,12 +39,10 @@ zend_string *bc_num2str_ex(bc_num num, size_t scale)
 {
 	zend_string *str;
 	char *sptr;
-	size_t index;
-	bool signch;
 	size_t min_scale = MIN(num->n_scale, scale);
 
 	/* Number of sign chars. */
-	signch = num->n_sign != PLUS && !bc_is_zero_for_scale(num, min_scale);
+	bool signch = num->n_sign != PLUS && !bc_is_zero_for_scale(num, min_scale);
 	/* Allocate the string memory. */
 	if (scale > 0) {
 		str = zend_string_alloc(num->n_len + scale + signch + 1, 0);
@@ -56,15 +55,26 @@ zend_string *bc_num2str_ex(bc_num num, size_t scale)
 	if (signch) *sptr++ = '-';
 
 	/* Load the whole number. */
-	const char *nptr = num->n_value;
-	sptr = bc_copy_and_toggle_bcd(sptr, nptr, nptr + num->n_len);
-	nptr += num->n_len;
+	const BC_VECTOR *vptr = BC_VECTORS_INT_LOWER_PTR(num);
+	sptr = bc_convert_int_vector_to_str(sptr, vptr, num->n_int_vsize, num->n_len % BC_VECTOR_SIZE);
 
 	/* Now the fraction. */
 	if (scale > 0) {
 		*sptr++ = '.';
-		sptr = bc_copy_and_toggle_bcd(sptr, nptr, nptr + min_scale);
-		for (index = num->n_scale; index < scale; index++) {
+		vptr = num->n_vectors;
+		size_t frac_vsize;
+		size_t frac_protruded_len;
+		if (num->n_scale > scale) {
+			frac_vsize = BC_LENGTH_TO_VECTOR_SIZE(scale);
+			frac_protruded_len = BC_PROTRUNDED_LEN_FROM_LEN(scale);
+			size_t diff_frac_vsize = num->n_frac_vsize - frac_vsize;
+			vptr += diff_frac_vsize;
+		} else {
+			frac_vsize = num->n_frac_vsize;
+			frac_protruded_len = BC_PROTRUNDED_LEN_FROM_LEN(num->n_scale);
+		}
+		sptr = bc_convert_frac_vector_to_str(sptr, vptr, frac_vsize, frac_protruded_len);
+		for (size_t index = num->n_scale; index < scale; index++) {
 			*sptr++ = BCD_CHAR(0);
 		}
 	}

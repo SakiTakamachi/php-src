@@ -70,3 +70,18 @@ bool bc_is_zero(bc_num num)
 {
 	return bc_is_zero_for_scale(num, num->n_scale);
 }
+
+/* Ignore the integer part and check if the fractional part is 0. */
+bool bc_frac_is_zero(bc_num num)
+{
+	BC_VECTOR *vptr = num->n_vectors;
+	size_t vsize = num->n_frac_vsize;
+
+	/* The check */
+	while (*vptr == 0 && vsize > 0) {
+		vsize--;
+		vptr++;
+	}
+
+	return vsize == 0;
+}

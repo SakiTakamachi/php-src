@@ -19,8 +19,8 @@
 
 void bc_set_new_scale(bc_num num, size_t scale)
 {
-	/* There is no point in making it the same or greater, so return early. */
-	if (num->n_scale <= scale) {
+	/* There is no point in making it the greater, so return early. */
+	if (num->n_scale < scale) {
 		return;
 	}
 

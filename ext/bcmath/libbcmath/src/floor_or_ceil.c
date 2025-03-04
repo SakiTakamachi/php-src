@@ -21,11 +21,13 @@
 bc_num bc_floor_or_ceil(bc_num num, bool is_floor)
 {
 	/*  Initialize result */
-	bc_num result = bc_new_num(num->n_len, 0);
+	bc_num result = bc_new_num_nonzeroed_with_vsize(num->n_int_vsize, 0, 0);
 	result->n_sign = num->n_sign;
 
 	/* copy integer part */
-	memcpy(result->n_value, num->n_value, num->n_len);
+	for (size_t i = num->n_int_vsize - 1; i >= 0; i--) {
+		result->n_vectors[i] = num->n_vectors[i];
+	}
 
 	/* If the number is positive and we are flooring, then nothing else needs to be done.
 	 * Similarly, if the number is negative and we are ceiling, then nothing else needs to be done. */
@@ -33,16 +35,8 @@ bc_num bc_floor_or_ceil(bc_num num, bool is_floor)
 		goto check_zero;
 	}
 
-	/* check fractional part. */
-	size_t count = num->n_scale;
-	const char *nptr = num->n_value + num->n_len;
-	while ((count > 0) && (*nptr == 0)) {
-		count--;
-		nptr++;
-	}
-
 	/* If all digits past the decimal point are 0 */
-	if (count == 0) {
+	if (bc_frac_is_zero(num)) {
 		goto check_zero;
 	}
 

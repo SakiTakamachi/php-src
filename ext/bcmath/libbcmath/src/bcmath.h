@@ -187,6 +187,8 @@ bool bc_sqrt(bc_num *num, size_t scale);
 
 size_t bc_get_int_protruded_length(bc_num num);
 
+void bc_set_new_scale(bc_num num, size_t scale);
+
 /* Prototypes needed for external utility routines. */
 #define bc_new_num(length, scale)										_bc_new_num_ex((length), (scale), 0)
 #define bc_new_num_nonzeroed(length, scale)								_bc_new_num_nonzeroed_ex((length), (scale), 0)

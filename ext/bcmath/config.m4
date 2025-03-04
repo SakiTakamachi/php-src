@@ -24,6 +24,7 @@ if test "$PHP_BCMATH" != "no"; then
       libbcmath/src/recmul.c
       libbcmath/src/rmzero.c
       libbcmath/src/round.c
+      libbcmath/src/scale.c
       libbcmath/src/sqrt.c
       libbcmath/src/str2num.c
       libbcmath/src/sub.c

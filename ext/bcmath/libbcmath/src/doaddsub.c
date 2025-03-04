@@ -41,123 +41,67 @@
 bc_num _bc_do_add(bc_num n1, bc_num n2)
 {
 	bc_num sum;
-	size_t sum_len = MAX(n1->n_len, n2->n_len) + 1;
-	size_t sum_scale = MAX(n1->n_scale, n2->n_scale);
-	size_t min_len = MIN (n1->n_len, n2->n_len);
-	size_t min_scale = MIN(n1->n_scale, n2->n_scale);
-	size_t min_bytes = min_len + min_scale;
-	char *n1ptr, *n2ptr, *sumptr;
+	size_t min_int_vsize  = MIN(n1->n_int_vsize, n2->n_int_vsize);
+	size_t min_frac_vsize = MIN(n1->n_frac_vsize, n2->n_frac_vsize);
+	size_t overlapping_size = min_int_vsize + min_frac_vsize;
 	bool carry = 0;
 	size_t count;
 
 	/* Prepare sum. */
-	sum = bc_new_num_nonzeroed(sum_len, sum_scale);
+	sum = bc_new_num_nonzeroed(MAX(n1->n_len, n2->n_len) + 1, MAX(n1->n_scale, n2->n_scale));
 
 	/* Start with the fraction part.  Initialize the pointers. */
-	n1ptr = (char *) (n1->n_value + n1->n_len + n1->n_scale - 1);
-	n2ptr = (char *) (n2->n_value + n2->n_len + n2->n_scale - 1);
-	sumptr = (char *) (sum->n_value + sum_scale + sum_len - 1);
+	BC_VECTOR *n1ptr = n1->n_vectors;
+	BC_VECTOR *n2ptr = n2->n_vectors;
+	BC_VECTOR *sumptr = sum->n_vectors;
 
 	/* Add the fraction part.  First copy the longer fraction.*/
-	if (n1->n_scale != min_scale) {
-		/* n1 has the longer scale */
-		for (count = n1->n_scale - min_scale; count > 0; count--) {
-			*sumptr-- = *n1ptr--;
+	if (n1->n_frac_vsize != min_frac_vsize) {
+		/* n1 has the longer frac_vsize */
+		for (count = n1->n_frac_vsize - min_frac_vsize; count > 0; count--) {
+			*sumptr++ = *n1ptr++;
 		}
 	} else {
-		/* n2 has the longer scale */
-		for (count = n2->n_scale - min_scale; count > 0; count--) {
-			*sumptr-- = *n2ptr--;
+		/* n2 has the longer frac_vsize */
+		for (count = n2->n_frac_vsize - min_frac_vsize; count > 0; count--) {
+			*sumptr++ = *n2ptr++;
 		}
 	}
 
 	/* Now add the remaining fraction part and equal size integer parts. */
 	count = 0;
-	/* Uses SIMD to perform calculations at high speed. */
-	if (min_bytes >= sizeof(BC_VECTOR)) {
-		sumptr++;
-		n1ptr++;
-		n2ptr++;
-		while (count + sizeof(BC_VECTOR) <= min_bytes) {
-			sumptr -= sizeof(BC_VECTOR);
-			n1ptr -= sizeof(BC_VECTOR);
-			n2ptr -= sizeof(BC_VECTOR);
-
-			BC_VECTOR n1bytes;
-			BC_VECTOR n2bytes;
-			memcpy(&n1bytes, n1ptr, sizeof(n1bytes));
-			memcpy(&n2bytes, n2ptr, sizeof(n2bytes));
-
-#if BC_LITTLE_ENDIAN
-			/* Little endian requires changing the order of bytes. */
-			n1bytes = BC_BSWAP(n1bytes);
-			n2bytes = BC_BSWAP(n2bytes);
-#endif
-
-			/*
-			 * In order to add 1 to the "next digit" when a carry occurs, adjust it so that it
-			 * overflows when add 10.
-			 * e.g.
-			 * 00001001(9) + 00000001(1) = 00001010(10) to
-			 * 11111111 + 00000001 = 00000000(0) and carry 1
-			 */
-			n1bytes += SWAR_REPEAT(0xF6) + n2bytes + carry;
-			/* If the most significant bit is 0, a carry has occurred. */
-			carry = !(n1bytes & ((BC_VECTOR) 1 << (8 * sizeof(BC_VECTOR) - 1)));
-
-			/*
-			 * The calculation result is a mixture of bytes that have been carried and bytes that have not.
-			 * The most significant bit of each byte is 0 if it is carried forward, and 1 if it is not.
-			 * Using this, subtract the 0xF6 added for adjustment from the byte that has not been carried
-			 * over to return it to the correct value as a decimal number.
-			 */
-			BC_VECTOR sum_mask = ((n1bytes & SWAR_REPEAT(0x80)) >> 7) * 0xF6;
-			n1bytes -= sum_mask;
-
-#if BC_LITTLE_ENDIAN
-			/* Little endian requires changing the order of bytes back. */
-			n1bytes = BC_BSWAP(n1bytes);
-#endif
-
-			memcpy(sumptr, &n1bytes, sizeof(n1bytes));
-
-			count += sizeof(BC_VECTOR);
-		}
-		sumptr--;
-		n1ptr--;
-		n2ptr--;
-	}
-
-	for (; count < min_bytes; count++) {
-		*sumptr = *n1ptr-- + *n2ptr-- + carry;
-		if (*sumptr >= BASE) {
-			*sumptr -= BASE;
+	for (; overlapping_size > 0; overlapping_size--) {
+		*sumptr = *n1ptr++ + *n2ptr++ + carry;
+		if (*sumptr >= BC_VECTOR_BOUNDARY_NUM) {
+			*sumptr -= BC_VECTOR_BOUNDARY_NUM;
 			carry = 1;
 		} else {
 			carry = 0;
 		}
-		sumptr--;
+		sumptr++;
 	}
 
 	/* Now add carry the longer integer part. */
-	if (n1->n_len != n2->n_len) {
-		if (n2->n_len > n1->n_len) {
+	if (n1->n_int_vsize != n2->n_int_vsize) {
+		if (n2->n_int_vsize > n1->n_int_vsize) {
 			n1ptr = n2ptr;
 		}
-		for (count = sum_len - min_len; count > 1; count--) {
-			*sumptr = *n1ptr-- + carry;
-			if (*sumptr >= BASE) {
-				*sumptr -= BASE;
+		for (count = sum->n_int_vsize - 1 - min_int_vsize; count > 0; count--) {
+			*sumptr = *n1ptr++ + carry;
+			if (*sumptr >= BC_VECTOR_BOUNDARY_NUM) {
+				*sumptr -= BC_VECTOR_BOUNDARY_NUM;
 				carry = 1;
 			} else {
 				carry = 0;
 			}
-			sumptr--;
+			sumptr++;
 		}
 	}
 
 	/* Set final carry. */
-	*sumptr = carry;
+	if (sumptr == BC_VECTORS_UPPER_PTR(sum)) {
+		*sumptr = carry;
+	}
 
 	/* Adjust sum and return. */
 	_bc_rm_leading_zeros(sum);
@@ -172,122 +116,69 @@ bc_num _bc_do_add(bc_num n1, bc_num n2)
 bc_num _bc_do_sub(bc_num n1, bc_num n2)
 {
 	bc_num diff;
-	/* The caller is guaranteed that n1 is always large. */
-	size_t diff_len = EXPECTED(n1->n_len >= n2->n_len) ? n1->n_len : n2->n_len;
-	size_t diff_scale = MAX(n1->n_scale, n2->n_scale);
-	/* Same condition as EXPECTED before, but using EXPECTED again will make it slower. */
-	size_t min_len = n1->n_len >= n2->n_len ? n2->n_len : n1->n_len;
-	size_t min_scale = MIN(n1->n_scale, n2->n_scale);
-	size_t min_bytes = min_len + min_scale;
+	size_t min_int_vsize  = n2->n_int_vsize;
+	size_t min_frac_vsize = MIN(n1->n_frac_vsize, n2->n_frac_vsize);
+	size_t overlapping_size = min_int_vsize + min_frac_vsize;
 	size_t borrow = 0;
 	size_t count;
-	int val;
-	char *n1ptr, *n2ptr, *diffptr;
 
 	/* Allocate temporary storage. */
-	diff = bc_new_num_nonzeroed(diff_len, diff_scale);
+	diff = bc_new_num_nonzeroed(MAX(n1->n_len, n2->n_len) + 1, MAX(n1->n_scale, n2->n_scale));
 
 	/* Initialize the subtract. */
-	n1ptr = (char *) (n1->n_value + n1->n_len + n1->n_scale - 1);
-	n2ptr = (char *) (n2->n_value + n2->n_len + n2->n_scale - 1);
-	diffptr = (char *) (diff->n_value + diff_len + diff_scale - 1);
+	BC_VECTOR *n1ptr = n1->n_vectors;
+	BC_VECTOR *n2ptr = n2->n_vectors;
+	BC_VECTOR *diffptr = diff->n_vectors;
 
-	/* Take care of the longer scaled number. */
-	if (n1->n_scale != min_scale) {
-		/* n1 has the longer scale */
-		for (count = n1->n_scale - min_scale; count > 0; count--) {
-			*diffptr-- = *n1ptr--;
+	/* Take care of the longer frac_vsize number. */
+	if (n1->n_frac_vsize != min_frac_vsize) {
+		/* n1 has the longer frac_vsize */
+		for (count = n1->n_frac_vsize - min_frac_vsize; count > 0; count--) {
+			*diffptr++ = *n1ptr++;
 		}
 	} else {
-		/* n2 has the longer scale */
-		for (count = n2->n_scale - min_scale; count > 0; count--) {
-			val = -*n2ptr-- - borrow;
-			if (val < 0) {
-				val += BASE;
+		/* n2 has the longer frac_vsize */
+		for (count = n2->n_frac_vsize - min_frac_vsize; count > 0; count--) {
+			BC_VECTOR val = *n2ptr + borrow;
+			if (val > 0) {
+				*diffptr = BC_VECTOR_BOUNDARY_NUM - val;
 				borrow = 1;
 			} else {
+				*diffptr = 0;
 				borrow = 0;
 			}
-			*diffptr-- = val;
+			diffptr++;
+			n2ptr++;
 		}
 	}
 
-	/* Now do the equal length scale and integer parts. */
+	/* Now do the equal frac_vsize and integer parts. */
 	count = 0;
-	/* Uses SIMD to perform calculations at high speed. */
-	if (min_bytes >= sizeof(BC_VECTOR)) {
+	for (; overlapping_size > 0; overlapping_size--) {
+		BC_VECTOR val = *n2ptr + borrow;
+		if (val > *n1ptr) {
+			*diffptr = BC_VECTOR_BOUNDARY_NUM + *n1ptr - val;
+			borrow = 1;
+		} else {
+			*diffptr = *n1ptr - val;
+			borrow = 0;
+		}
 		diffptr++;
 		n1ptr++;
 		n2ptr++;
-		while (count + sizeof(BC_VECTOR) <= min_bytes) {
-			diffptr -= sizeof(BC_VECTOR);
-			n1ptr -= sizeof(BC_VECTOR);
-			n2ptr -= sizeof(BC_VECTOR);
-
-			BC_VECTOR n1bytes;
-			BC_VECTOR n2bytes;
-			memcpy(&n1bytes, n1ptr, sizeof(n1bytes));
-			memcpy(&n2bytes, n2ptr, sizeof(n2bytes));
-
-#if BC_LITTLE_ENDIAN
-			/* Little endian requires changing the order of bytes. */
-			n1bytes = BC_BSWAP(n1bytes);
-			n2bytes = BC_BSWAP(n2bytes);
-#endif
-
-			n1bytes -= n2bytes + borrow;
-			/* If the most significant bit is 1, a carry down has occurred. */
-			bool tmp_borrow = n1bytes & ((BC_VECTOR) 1 << (8 * sizeof(BC_VECTOR) - 1));
-
-			/*
-			 * Check the most significant bit of each of the bytes, and if it is 1, a carry down has
-			 * occurred. When carrying down occurs, due to the difference between decimal and hexadecimal
-			 * numbers, an extra 6 is added to the lower 4 bits.
-			 * Therefore, for a byte that has been carried down, set all the upper 4 bits to 0 and subtract
-			 * 6 from the lower 4 bits to adjust it to the correct value as a decimal number.
-			 */
-			BC_VECTOR borrow_mask = ((n1bytes & SWAR_REPEAT(0x80)) >> 7) * 0x06;
-			n1bytes = (n1bytes & SWAR_REPEAT(0x0F)) - borrow_mask;
-
-#if BC_LITTLE_ENDIAN
-			/* Little endian requires changing the order of bytes back. */
-			n1bytes = BC_BSWAP(n1bytes);
-#endif
-
-			memcpy(diffptr, &n1bytes, sizeof(n1bytes));
-
-			borrow = tmp_borrow;
-			count += sizeof(BC_VECTOR);
-		}
-		diffptr--;
-		n1ptr--;
-		n2ptr--;
-	}
-
-	/* Calculate the remaining bytes that are less than the size of BC_VECTOR using a normal loop. */
-	for (; count < min_bytes; count++) {
-		val = *n1ptr-- - *n2ptr-- - borrow;
-		if (val < 0) {
-			val += BASE;
-			borrow = 1;
-		} else {
-			borrow = 0;
-		}
-		*diffptr-- = val;
 	}
 
 	/* If n1 has more digits than n2, we now do that subtract. */
-	if (diff_len != min_len) {
-		for (count = diff_len - min_len; count > 0; count--) {
-			val = *n1ptr-- - borrow;
-			if (val < 0) {
-				val += BASE;
-				borrow = 1;
-			} else {
-				borrow = 0;
-			}
-			*diffptr-- = val;
+	for (count = diff->n_int_vsize - min_int_vsize; count > 0; count--) {
+		if (borrow > *n1ptr) {
+			*diffptr = *n1ptr + BC_VECTOR_BOUNDARY_NUM - borrow;
+			borrow = 1;
+		} else {
+			*diffptr = *n1ptr - borrow;
+			borrow = 0;
 		}
+		diffptr++;
+		n1ptr++;
 	}
 
 	/* Clean up and return. */

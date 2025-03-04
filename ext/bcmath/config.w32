@@ -8,7 +8,7 @@ if (PHP_BCMATH == "yes") {
 		raisemod.c sub.c compare.c divmod.c long2num.c \
 		num2long.c recmul.c sqrt.c zero.c doaddsub.c \
 		floor_or_ceil.c nearzero.c num2str.c raise.c rmzero.c str2num.c \
-		round.c convert.c", "bcmath");
+		round.c convert.c scale.c", "bcmath");
 
 	AC_DEFINE('HAVE_BCMATH', 1, "Define to 1 if the PHP extension 'bcmath' is available.");
 }

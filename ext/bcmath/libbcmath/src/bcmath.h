@@ -182,6 +182,8 @@ void bc_raise_bc_exponent(bc_num base, bc_num exponent, bc_num *resul, size_t sc
 
 bool bc_sqrt(bc_num *num, size_t scale);
 
+void bc_set_new_scale(bc_num num, size_t scale);
+
 /* Prototypes needed for external utility routines. */
 #define bc_new_num(length, scale)											_bc_new_num_ex((length), (scale), 0)
 #define bc_new_num_nonzeroed(length, scale)									_bc_new_num_nonzeroed_ex((length), (scale), 0)

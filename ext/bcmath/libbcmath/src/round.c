@@ -35,50 +35,58 @@ void bc_round(bc_num num, zend_long precision, zend_long mode, bc_num *result)
 	*/
 
 	/* e.g. value is 0.1 and precision is -3, ret is 0 or 1000  */
-	if (precision < 0 && num->n_len < (size_t) (-(precision + Z_L(1))) + 1) {
-		switch (mode) {
-			case PHP_ROUND_HALF_UP:
-			case PHP_ROUND_HALF_DOWN:
-			case PHP_ROUND_HALF_EVEN:
-			case PHP_ROUND_HALF_ODD:
-			case PHP_ROUND_TOWARD_ZERO:
+	if (precision < 0) {
+		size_t precision_vsize = BC_LENGTH_TO_VECTOR_SIZE(-precision);
+		size_t protruded_precision = -precision % BC_VECTOR_SIZE;
+		BC_VECTOR *vptr = BC_VECTORS_UPPER_PTR(num);
+
+		if (num->n_int_vsize <= precision_vsize ||
+			(num->n_int_vsize == precision_vsize && *vptr < BC_POW_10_LUT[protruded_precision - 1])) {
+			switch (mode) {
+				case PHP_ROUND_HALF_UP:
+				case PHP_ROUND_HALF_DOWN:
+				case PHP_ROUND_HALF_EVEN:
+				case PHP_ROUND_HALF_ODD:
+				case PHP_ROUND_TOWARD_ZERO:
+					*result = bc_copy_num(BCG(_zero_));
+					return;
+
+				case PHP_ROUND_CEILING:
+					if (num->n_sign == MINUS) {
+						*result = bc_copy_num(BCG(_zero_));
+						return;
+					}
+					break;
+
+				case PHP_ROUND_FLOOR:
+					if (num->n_sign == PLUS) {
+						*result = bc_copy_num(BCG(_zero_));
+						return;
+					}
+					break;
+
+				case PHP_ROUND_AWAY_FROM_ZERO:
+					break;
+
+				EMPTY_SWITCH_DEFAULT_CASE()
+			}
+
+			if (bc_is_zero(num)) {
 				*result = bc_copy_num(BCG(_zero_));
 				return;
+			}
 
-			case PHP_ROUND_CEILING:
-				if (num->n_sign == MINUS) {
-					*result = bc_copy_num(BCG(_zero_));
-					return;
-				}
-				break;
-
-			case PHP_ROUND_FLOOR:
-				if (num->n_sign == PLUS) {
-					*result = bc_copy_num(BCG(_zero_));
-					return;
-				}
-				break;
-
-			case PHP_ROUND_AWAY_FROM_ZERO:
-				break;
-
-			EMPTY_SWITCH_DEFAULT_CASE()
-		}
-
-		if (bc_is_zero(num)) {
-			*result = bc_copy_num(BCG(_zero_));
+			/* If precision is -3, it becomes 1000. */
+			if (UNEXPECTED(precision == ZEND_LONG_MIN)) {
+				*result = bc_new_num((size_t) ZEND_LONG_MAX + 2, 0);
+			} else {
+				*result = bc_new_num(-precision + 1, 0);
+			}
+			vptr = BC_VECTORS_UPPER_PTR(*result);
+			*vptr = BC_POW_10_LUT[protruded_precision];
+			(*result)->n_sign = num->n_sign;
 			return;
 		}
-
-		/* If precision is -3, it becomes 1000. */
-		if (UNEXPECTED(precision == ZEND_LONG_MIN)) {
-			*result = bc_new_num((size_t) ZEND_LONG_MAX + 2, 0);
-		} else {
-			*result = bc_new_num(-precision + 1, 0);
-		}
-		(*result)->n_value[0] = 1;
-		(*result)->n_sign = num->n_sign;
-		return;
 	}
 
 	/* Just like bcadd('1', '1', 4) becomes '2.0000', it pads with zeros at the end if necessary. */
@@ -86,9 +94,20 @@ void bc_round(bc_num num, zend_long precision, zend_long mode, bc_num *result)
 		if (num->n_scale == precision) {
 			*result = bc_copy_num(num);
 		} else if(num->n_scale < precision) {
-			*result = bc_new_num(num->n_len, precision);
+			size_t result_frac_vsize = BC_LENGTH_TO_VECTOR_SIZE(precision);
+			*result = bc_new_num_nonzeroed_with_vsize(num->n_int_vsize, result_frac_vsize, precision);
 			(*result)->n_sign = num->n_sign;
-			memcpy((*result)->n_value, num->n_value, num->n_len + num->n_scale);
+
+			size_t i = 0;
+			size_t vsize = num->n_int_vsize + num->n_frac_vsize;
+			/* copy */
+			for (; i < vsize; i++) {
+				(*result)->n_vectors[i] = num->n_vectors[i];
+			}
+			/* padding zeros */
+			for (; i < result_frac_vsize - vsize; i++) {
+				(*result)->n_vectors[i] = 0;
+			}
 		}
 		return;
 	}
@@ -97,7 +116,13 @@ void bc_round(bc_num num, zend_long precision, zend_long mode, bc_num *result)
 	 * If the calculation result is a negative value, there is an early return,
 	 * so no underflow will occur.
 	 */
-	size_t rounded_len = num->n_len + precision;
+	size_t int_len = num->n_int_vsize * BC_VECTOR_SIZE;
+	size_t protruded_len = bc_get_int_protruded_length(num);
+	size_t leading_zeros = protruded_len > 0 ? BC_VECTOR_SIZE - protruded_len : 0;
+	int_len -= leading_zeros;
+	size_t rounded_len = int_len + precision;
+	size_t rounded_tmp_vsize = (rounded_len + leading_zeros) / BC_VECTOR_SIZE;
+	size_t rounded_protruded_len = (rounded_len + leading_zeros) % BC_VECTOR_SIZE;
 
 	/*
 	 * Initialize result
@@ -105,21 +130,30 @@ void bc_round(bc_num num, zend_long precision, zend_long mode, bc_num *result)
 	 * If the result of rounding is carried over, it will be added later, so first set it to 0 here.
 	 */
 	if (rounded_len == 0) {
-		*result = bc_new_num(1, 0);
+		*result = bc_copy_num(BCG(_zero_));
 	} else {
-		*result = bc_new_num(num->n_len, precision > 0 ? precision : 0);
-		memcpy((*result)->n_value, num->n_value, rounded_len);
+		*result = bc_new_num(int_len, precision > 0 ? precision : 0);
+		for (size_t i = rounded_tmp_vsize; i > 0; i--) {
+			(*result)->n_vectors[i] = num->n_vectors[i];
+		}
+		if (rounded_protruded_len > 0) {
+			BC_VECTOR protruded_vctr = num->n_vectors[0];
+			(*result)->n_vectors[0] = protruded_vctr - protruded_vctr % BC_POW_10_LUT[BC_VECTOR_SIZE - rounded_protruded_len];
+		}
 	}
 	(*result)->n_sign = num->n_sign;
 
-	const char *nptr = num->n_value + rounded_len;
+	size_t count = num->n_int_vsize + num->n_frac_vsize - rounded_tmp_vsize;
+	BC_VECTOR *vptr = num->n_vectors + count;
+	BC_VECTOR check_val = *vptr / BC_POW_10_LUT[BC_VECTOR_SIZE - rounded_protruded_len - 1];
+	check_val %= 10;
 
 	/* Check cases that can be determined without looping. */
 	switch (mode) {
 		case PHP_ROUND_HALF_UP:
-			if (*nptr >= 5) {
+			if (check_val >= 5) {
 				goto up;
-			} else if (*nptr < 5) {
+			} else if (check_val < 5) {
 				goto check_zero;
 			}
 			break;
@@ -127,51 +161,55 @@ void bc_round(bc_num num, zend_long precision, zend_long mode, bc_num *result)
 		case PHP_ROUND_HALF_DOWN:
 		case PHP_ROUND_HALF_EVEN:
 		case PHP_ROUND_HALF_ODD:
-			if (*nptr > 5) {
+			if (check_val > 5) {
 				goto up;
-			} else if (*nptr < 5) {
+			} else if (check_val < 5) {
 				goto check_zero;
 			}
-			/* if *nptr == 5, we need to look-up further digits before making a decision. */
+			/* if check_val == 5, we need to look-up further digits before making a decision. */
 			break;
 
 		case PHP_ROUND_CEILING:
 			if (num->n_sign != PLUS) {
 				goto check_zero;
-			} else if (*nptr > 0) {
+			} else if (check_val > 0) {
 				goto up;
 			}
-			/* if *nptr == 0, a loop is required for judgment. */
+			/* if check_val == 0, a loop is required for judgment. */
 			break;
 
 		case PHP_ROUND_FLOOR:
 			if (num->n_sign != MINUS) {
 				goto check_zero;
-			} else if (*nptr > 0) {
+			} else if (check_val > 0) {
 				goto up;
 			}
-			/* if *nptr == 0, a loop is required for judgment. */
+			/* if check_val == 0, a loop is required for judgment. */
 			break;
 
 		case PHP_ROUND_TOWARD_ZERO:
 			goto check_zero;
 
 		case PHP_ROUND_AWAY_FROM_ZERO:
-			if (*nptr > 0) {
+			if (check_val > 0) {
 				goto up;
 			}
-			/* if *nptr == 0, a loop is required for judgment. */
+			/* if check_val == 0, a loop is required for judgment. */
 			break;
 
 		EMPTY_SWITCH_DEFAULT_CASE()
 	}
 
 	/* Loop through the remaining digits. */
-	size_t count = num->n_len + num->n_scale - rounded_len - 1;
-	nptr++;
-	while ((count > 0) && (*nptr == 0)) {
+	if (*vptr % BC_POW_10_LUT[BC_VECTOR_SIZE - rounded_protruded_len - 1] != 0) {
+		goto up;
+	}
+	count--;
+	vptr--;
+
+	while ((count > 0) && (*vptr == 0)) {
 		count--;
-		nptr++;
+		vptr--;
 	}
 
 	if (count > 0) {
@@ -186,13 +224,15 @@ void bc_round(bc_num num, zend_long precision, zend_long mode, bc_num *result)
 			goto check_zero;
 
 		case PHP_ROUND_HALF_EVEN:
-			if (rounded_len == 0 || num->n_value[rounded_len - 1] % 2 == 0) {
+			vptr = BC_VECTORS_UPPER_PTR(*result) - rounded_tmp_vsize;
+			if (rounded_len == 0 || *vptr % 2 == 0) {
 				goto check_zero;
 			}
 			break;
 
 		case PHP_ROUND_HALF_ODD:
-			if (rounded_len != 0 && num->n_value[rounded_len - 1] % 2 == 1) {
+			vptr = BC_VECTORS_UPPER_PTR(*result) - rounded_tmp_vsize;
+			if (rounded_len != 0 && *vptr % 2 == 1) {
 				goto check_zero;
 			}
 			break;
@@ -205,12 +245,14 @@ up:
 		bc_num tmp;
 
 		if (rounded_len == 0) {
-			tmp = bc_new_num(num->n_len + 1, 0);
-			tmp->n_value[0] = 1;
+			tmp = bc_new_num(int_len + 1, 0);
+			vptr = BC_VECTORS_UPPER_PTR(tmp);
+			*vptr = BC_POW_10_LUT[BC_VECTOR_SIZE - leading_zeros - 1];
 			tmp->n_sign = num->n_sign;
 		} else {
-			bc_num scaled_one = bc_new_num((*result)->n_len, (*result)->n_scale);
-			scaled_one->n_value[rounded_len - 1] = 1;
+			bc_num scaled_one = bc_new_num_with_vsize((*result)->n_int_vsize, (*result)->n_frac_vsize, (*result)->n_scale);
+			vptr = BC_VECTORS_UPPER_PTR(scaled_one) - rounded_tmp_vsize;
+			*vptr = BC_POW_10_LUT[BC_VECTOR_SIZE - rounded_protruded_len - 1];
 
 			tmp = _bc_do_add(*result, scaled_one);
 			tmp->n_sign = (*result)->n_sign;

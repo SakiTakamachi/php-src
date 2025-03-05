@@ -71,6 +71,15 @@ bool bc_is_zero(bc_num num)
 	return bc_is_zero_for_scale(num, num->n_scale);
 }
 
+/* Ignore the fractional part and check if the integer part is 0. */
+bool bc_int_is_zero(bc_num num)
+{
+	if (num->n_int_vsize > 1) {
+		return false;
+	}
+	return *(BC_VECTORS_INT_LOWER_PTR(num)) == 0;
+}
+
 /* Ignore the integer part and check if the fractional part is 0. */
 bool bc_frac_is_zero(bc_num num)
 {

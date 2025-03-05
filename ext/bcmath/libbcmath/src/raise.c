@@ -30,6 +30,7 @@
 *************************************************************************/
 
 #include "bcmath.h"
+#include "private.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -101,7 +102,9 @@ bool bc_raise(bc_num base, long exponent, bc_num *result, size_t scale) {
 	} else {
 		bc_free_num (result);
 		*result = temp;
-		(*result)->n_scale = MIN(scale, (*result)->n_scale);
+		if (scale < (*result)->n_scale) {
+			bc_set_new_scale(*result, scale);
+		}
 	}
 	bc_free_num (&power);
 	return true;
@@ -114,11 +117,9 @@ void bc_raise_bc_exponent(bc_num base, bc_num expo, bc_num *result, size_t scale
 
 	long exponent = bc_num2long(expo);
 	/* Exponent must be properly convertable to long */
-	if (exponent == 0 && (expo->n_len > 1 || expo->n_value[0] != 0)) {
+	if (exponent == 0 && !bc_int_is_zero(expo)) {
 		assert(false && "Exponent is not well formed in internal call");
-		//assert(exponent != 0 || (expo->n_len == 0 && expo->n_value[0] == 0));
 	}
-	//assert(exponent != 0 || (expo->n_len == 0 && expo->n_value[0] == 0));
 	bc_raise(base, exponent, result, scale);
 }
 

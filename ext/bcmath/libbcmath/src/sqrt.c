@@ -30,6 +30,7 @@
 *************************************************************************/
 
 #include "bcmath.h"
+#include "private.h"
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -67,7 +68,7 @@ bool bc_sqrt(bc_num *num, size_t scale)
 	bc_init_num(&guess1);
 	bc_init_num(&diff);
 	point5 = bc_new_num (1, 1);
-	point5->n_value[1] = 5;
+	*(BC_VECTORS_FRAC_UPPER_PTR(point5)) = 5 * BC_POW_10_LUT[BC_VECTOR_SIZE - 1];
 
 
 	/* Calculate the initial guess. */

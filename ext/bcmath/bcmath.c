@@ -610,7 +610,7 @@ PHP_FUNCTION(bcpow)
 		goto cleanup;
 	}
 	long exponent = bc_num2long(bc_exponent);
-	if (exponent == 0 && (bc_exponent->n_len > 1 || bc_exponent->n_value[0] != 0)) {
+	if (exponent == 0 && !bc_int_is_zero(bc_exponent)) {
 		zend_argument_value_error(2, "is too large");
 		goto cleanup;
 	}
@@ -1134,9 +1134,9 @@ static zend_result bcmath_number_pow_internal(
 
 	/**
 	 * bc_num2long() returns 0 if exponent is too large.
-	 * Here, if n2->n_value is not 0 but exponent is 0, it is considered too large.
+	 * Here, if n2 is not 0 but exponent is 0, it is considered too large.
 	 */
-	if (UNEXPECTED(exponent == 0 && (n2->n_len > 1 || n2->n_value[0] != 0))) {
+	if (UNEXPECTED(exponent == 0 && !bc_int_is_zero(n2))) {
 		if (is_op) {
 			zend_value_error("exponent is too large");
 		} else {

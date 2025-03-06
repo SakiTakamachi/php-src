@@ -71,7 +71,7 @@ bool bc_divmod(bc_num num1, bc_num num2, bc_num *quot, bc_num *rem, size_t scale
 	}
 
 	/* The value of rscale changes during processing. Here we use the value of scale. It's not a typo. */
-	(*rem)->n_scale = MIN(scale, (*rem)->n_scale);
+	bc_set_new_scale(*rem, MIN(scale, (*rem)->n_scale));
 	if (bc_is_zero(*rem)) {
 		(*rem)->n_sign = PLUS;
 	}

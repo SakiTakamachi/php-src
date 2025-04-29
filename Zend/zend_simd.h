@@ -50,7 +50,11 @@ typedef int8x16_t __m128i;
 #define _mm_srli_si128(x, bytes) vreinterpretq_s8_u8(vextq_u8(vdupq_n_u8(0), vreinterpretq_u8_s8(x), bytes))
 #define _mm_slli_si128(x, bytes) vreinterpretq_s8_u8(vextq_u8(vreinterpretq_u8_s8(x), vdupq_n_u8(0), 16 - bytes))
 
-#define _mm_add_epi8(a, b) vaddq_s8(a, b)
+__attribute__((no_sanitize("signed-integer-overflow")))
+static zend_always_inline __m128i _mm_add_epi8(__m128i a, __m128i b)
+{
+    return vaddq_s8(a, b);
+}
 
 #define _mm_cmpeq_epi8(a, b) (vreinterpretq_s8_u8(vceqq_s8(a, b)))
 #define _mm_cmplt_epi8(a, b) (vreinterpretq_s8_u8(vcltq_s8(a, b)))

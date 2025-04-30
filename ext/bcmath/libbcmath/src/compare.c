@@ -33,11 +33,33 @@
 #include "bcmath.h"
 #include "private.h"
 #include <stddef.h>
-
+#include "zend_simd.h"
 
 /* Compare two bc numbers.  Return value is 0 if equal, -1 if N1 is less
    than N2 and +1 if N1 is greater than N2.  If USE_SIGN is false, just
    compare the magnitudes. */
+
+static inline bool bc_compare_have_non_zero_digits(const char *nptr, size_t count)
+{
+#ifdef ZEND_HAVE_VECTOR_128
+	const __m128i zero_repeat = _mm_set1_epi8(0);
+	while (count > sizeof(__m128i)) {
+		const __m128i bytes = _mm_loadu_si128((const __m128i *) nptr);
+		int mask = _mm_movemask_epi8(_mm_cmpeq_epi8(bytes, zero_repeat));
+		if (mask != 0xffff) {
+			return true;
+		}
+		count -= sizeof(__m128i);
+		nptr += sizeof(__m128i);
+	}
+#endif
+	for (; count > 0; count--) {
+		if (*nptr++ != 0) {
+			return true;
+		}
+	}
+	return false;
+}
 
 bcmath_compare_result _bc_do_compare(bc_num n1, bc_num n2, size_t scale, bool use_sign)
 {
@@ -92,6 +114,26 @@ bcmath_compare_result _bc_do_compare(bc_num n1, bc_num n2, size_t scale, bool us
 	const char *n1ptr = n1->n_value;
 	const char *n2ptr = n2->n_value;
 
+#ifdef ZEND_HAVE_VECTOR_128
+	while (count >= sizeof(__m128i)) {
+		const __m128i n1_bytes = _mm_loadu_si128((const __m128i *) n1ptr);
+		const __m128i n2_bytes = _mm_loadu_si128((const __m128i *) n2ptr);
+		int mask = _mm_movemask_epi8(_mm_cmpeq_epi8(n1_bytes, n2_bytes));
+		if (mask != 0xffff) {
+#ifdef PHP_HAVE_BUILTIN_CTZL
+			size_t move = __builtin_ctz(~mask);
+			count -= move;
+			n1ptr += move;
+			n2ptr += move;
+#endif
+			break;
+		}
+		count -= sizeof(__m128i);
+		n1ptr += sizeof(__m128i);
+		n2ptr += sizeof(__m128i);
+	}
+#endif
+
 	while ((count > 0) && (*n1ptr == *n2ptr)) {
 		n1ptr++;
 		n2ptr++;
@@ -119,25 +161,23 @@ bcmath_compare_result _bc_do_compare(bc_num n1, bc_num n2, size_t scale, bool us
 	/* They are equal up to the last part of the equal part of the fraction. */
 	if (n1_scale != n2_scale) {
 		if (n1_scale > n2_scale) {
-			for (count = n1_scale - n2_scale; count > 0; count--) {
-				if (*n1ptr++ != 0) {
-					/* Magnitude of n1 > n2. */
-					if (!use_sign || n1->n_sign == PLUS) {
-						return BCMATH_LEFT_GREATER;
-					} else {
-						return BCMATH_RIGHT_GREATER;
-					}
+			count = n1_scale - n2_scale;
+			if (bc_compare_have_non_zero_digits(n1ptr, count)) {
+				/* Magnitude of n1 > n2. */
+				if (!use_sign || n1->n_sign == PLUS) {
+					return BCMATH_LEFT_GREATER;
+				} else {
+					return BCMATH_RIGHT_GREATER;
 				}
 			}
 		} else {
-			for (count = n2_scale - n1_scale; count > 0; count--) {
-				if (*n2ptr++ != 0) {
-					/* Magnitude of n1 < n2. */
-					if (!use_sign || n1->n_sign == PLUS) {
-						return BCMATH_RIGHT_GREATER;
-					} else {
-						return BCMATH_LEFT_GREATER;
-					}
+			count = n2_scale - n1_scale;
+			if (bc_compare_have_non_zero_digits(n2ptr, count)) {
+				/* Magnitude of n1 < n2. */
+				if (!use_sign || n1->n_sign == PLUS) {
+					return BCMATH_RIGHT_GREATER;
+				} else {
+					return BCMATH_LEFT_GREATER;
 				}
 			}
 		}

@@ -85,8 +85,8 @@ bc_num _bc_do_add(bc_num n1, bc_num n2)
 
 			BC_VECTOR n1bytes;
 			BC_VECTOR n2bytes;
-			memcpy(&n1bytes, n1ptr, sizeof(n1bytes));
-			memcpy(&n2bytes, n2ptr, sizeof(n2bytes));
+			BC_MEMCPY(&n1bytes, n1ptr, sizeof(n1bytes));
+			BC_MEMCPY(&n2bytes, n2ptr, sizeof(n2bytes));
 
 #if BC_LITTLE_ENDIAN
 			/* Little endian requires changing the order of bytes. */
@@ -119,7 +119,7 @@ bc_num _bc_do_add(bc_num n1, bc_num n2)
 			n1bytes = BC_BSWAP(n1bytes);
 #endif
 
-			memcpy(sumptr, &n1bytes, sizeof(n1bytes));
+			BC_MEMCPY(sumptr, &n1bytes, sizeof(n1bytes));
 
 			count += sizeof(BC_VECTOR);
 		}
@@ -226,8 +226,8 @@ bc_num _bc_do_sub(bc_num n1, bc_num n2)
 
 			BC_VECTOR n1bytes;
 			BC_VECTOR n2bytes;
-			memcpy(&n1bytes, n1ptr, sizeof(n1bytes));
-			memcpy(&n2bytes, n2ptr, sizeof(n2bytes));
+			BC_MEMCPY(&n1bytes, n1ptr, sizeof(n1bytes));
+			BC_MEMCPY(&n2bytes, n2ptr, sizeof(n2bytes));
 
 #if BC_LITTLE_ENDIAN
 			/* Little endian requires changing the order of bytes. */
@@ -254,7 +254,7 @@ bc_num _bc_do_sub(bc_num n1, bc_num n2)
 			n1bytes = BC_BSWAP(n1bytes);
 #endif
 
-			memcpy(diffptr, &n1bytes, sizeof(n1bytes));
+			BC_MEMCPY(diffptr, &n1bytes, sizeof(n1bytes));
 
 			borrow = tmp_borrow;
 			count += sizeof(BC_VECTOR);

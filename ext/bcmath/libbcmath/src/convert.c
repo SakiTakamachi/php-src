@@ -42,10 +42,10 @@ char *bc_copy_and_toggle_bcd(char *restrict dest, const char *source, const char
 	 * by using SWAR_REPEAT. */
 	while (source + sizeof(size_t) <= source_end) {
 		size_t bytes;
-		memcpy(&bytes, source, sizeof(bytes));
+		BC_MEMCPY(&bytes, source, sizeof(bytes));
 
 		bytes ^= bulk_shift;
-		memcpy(dest, &bytes, sizeof(bytes));
+		BC_MEMCPY(dest, &bytes, sizeof(bytes));
 
 		source += sizeof(size_t);
 		dest += sizeof(size_t);
@@ -71,7 +71,7 @@ char *bc_copy_and_toggle_bcd(char *restrict dest, const char *source, const char
 BC_VECTOR bc_parse_chunk_chars(const char *str)
 {
 	BC_VECTOR tmp;
-	memcpy(&tmp, str, sizeof(tmp));
+	BC_MEMCPY(&tmp, str, sizeof(tmp));
 #if !BC_LITTLE_ENDIAN
 	tmp = BC_BSWAP(tmp);
 #endif
@@ -90,7 +90,7 @@ BC_VECTOR bc_parse_chunk_chars(const char *str)
 BC_VECTOR bc_parse_chunk_chars(const char *str)
 {
 	BC_VECTOR tmp;
-	memcpy(&tmp, str, sizeof(tmp));
+	BC_MEMCPY(&tmp, str, sizeof(tmp));
 #if !BC_LITTLE_ENDIAN
 	tmp = BC_BSWAP(tmp);
 #endif
@@ -155,5 +155,5 @@ void bc_write_bcd_representation(uint32_t value, char *str)
 	/* Note: big endian, so `upper` comes before `lower`! */
 	uint32_t digits = bc_expand_lut(LUT[upper]) << 16 | bc_expand_lut(LUT[lower]);
 #endif
-	memcpy(str, &digits, sizeof(digits));
+	BC_MEMCPY(str, &digits, sizeof(digits));
 }

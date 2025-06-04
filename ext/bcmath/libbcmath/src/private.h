@@ -79,6 +79,12 @@ static const BC_VECTOR BC_POW_10_LUT[9] = {
 	1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000
 };
 
+#if defined(__GNUC__) || defined(__clang__)
+#  define BC_MEMCPY(dest, source, size) __builtin_memcpy((dest), (source), (size))
+#else
+#  define BC_MEMCPY(dest, source, size) memcpy((dest), (source), (size))
+#endif
+
 
 /* routines */
 bcmath_compare_result _bc_do_compare (bc_num n1, bc_num n2, size_t scale, bool use_sign);

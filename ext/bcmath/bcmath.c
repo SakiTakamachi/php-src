@@ -352,7 +352,7 @@ PHP_FUNCTION(bcdiv)
 	zend_string *left, *right;
 	zend_long scale_param;
 	bool scale_param_is_null = 1;
-	bc_num first = NULL, second = NULL, result;
+	bc_num first = NULL, second = NULL, result = NULL;
 	int scale = BCG(bc_precision);
 
 	ZEND_PARSE_PARAMETERS_START(2, 3)
@@ -371,8 +371,6 @@ PHP_FUNCTION(bcdiv)
 	}
 
 	BC_ARENA_SETUP;
-
-	bc_init_num(&result);
 
 	if (php_str2num(&first, left) == FAILURE) {
 		zend_argument_value_error(1, "is not well-formed");
@@ -406,7 +404,7 @@ PHP_FUNCTION(bcmod)
 	zend_string *left, *right;
 	zend_long scale_param;
 	bool scale_param_is_null = 1;
-	bc_num first = NULL, second = NULL, result;
+	bc_num first = NULL, second = NULL, result = NULL;
 	int scale = BCG(bc_precision);
 
 	ZEND_PARSE_PARAMETERS_START(2, 3)
@@ -425,8 +423,6 @@ PHP_FUNCTION(bcmod)
 	}
 
 	BC_ARENA_SETUP;
-
-	bc_init_num(&result);
 
 	if (php_str2num(&first, left) == FAILURE) {
 		zend_argument_value_error(1, "is not well-formed");
@@ -515,7 +511,7 @@ PHP_FUNCTION(bcpowmod)
 	zend_string *base_str, *exponent_str, *modulus_str;
 	zend_long scale_param;
 	bool scale_param_is_null = 1;
-	bc_num bc_base = NULL, bc_expo = NULL, bc_modulus = NULL, result;
+	bc_num bc_base = NULL, bc_expo = NULL, bc_modulus = NULL, result = NULL;
 	int scale = BCG(bc_precision);
 
 	ZEND_PARSE_PARAMETERS_START(3, 4)
@@ -535,8 +531,6 @@ PHP_FUNCTION(bcpowmod)
 	}
 
 	BC_ARENA_SETUP;
-
-	bc_init_num(&result);
 
 	if (php_str2num(&bc_base, base_str) == FAILURE) {
 		zend_argument_value_error(1, "is not well-formed");
@@ -592,7 +586,7 @@ PHP_FUNCTION(bcpow)
 	zend_string *base_str, *exponent_str;
 	zend_long scale_param;
 	bool scale_param_is_null = 1;
-	bc_num first = NULL, bc_exponent = NULL, result;
+	bc_num first = NULL, bc_exponent = NULL, result = NULL;
 	int scale = BCG(bc_precision);
 
 	ZEND_PARSE_PARAMETERS_START(2, 3)
@@ -611,8 +605,6 @@ PHP_FUNCTION(bcpow)
 	}
 
 	BC_ARENA_SETUP;
-
-	bc_init_num(&result);
 
 	if (php_str2num(&first, base_str) == FAILURE) {
 		zend_argument_value_error(1, "is not well-formed");
@@ -789,7 +781,7 @@ PHP_FUNCTION(bcround)
 	zend_long precision = 0;
 	zend_long mode = PHP_ROUND_HALF_UP;
 	zend_object *mode_object = NULL;
-	bc_num num = NULL, result;
+	bc_num num = NULL, result = NULL;
 
 	ZEND_PARSE_PARAMETERS_START(1, 3)
 		Z_PARAM_STR(numstr)
@@ -819,8 +811,6 @@ PHP_FUNCTION(bcround)
 	}
 
 	BC_ARENA_SETUP;
-
-	bc_init_num(&result);
 
 	if (php_str2num(&num, numstr) == FAILURE) {
 		zend_argument_value_error(1, "is not well-formed");

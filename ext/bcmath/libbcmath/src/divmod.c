@@ -44,7 +44,7 @@
 bool bc_divmod(bc_num num1, bc_num num2, bc_num *quot, bc_num *rem, size_t scale)
 {
 	bc_num quotient = NULL;
-	bc_num temp;
+	bc_num temp = NULL;
 	size_t rscale;
 
 	/* Cannot divide/mod by 0. */
@@ -54,7 +54,6 @@ bool bc_divmod(bc_num num1, bc_num num2, bc_num *quot, bc_num *rem, size_t scale
 
 	/* Calculate final scale. */
 	rscale = MAX (num1->n_scale, num2->n_scale + scale);
-	bc_init_num(&temp);
 
 	/* Calculate it. */
 	bc_divide(num1, num2, &temp, 0);
@@ -66,7 +65,6 @@ bool bc_divmod(bc_num num1, bc_num num2, bc_num *quot, bc_num *rem, size_t scale
 	bc_free_num (&temp);
 
 	if (quot) {
-		bc_free_num (quot);
 		*quot = quotient;
 	}
 
